@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ฐานข้อมูลเครือข่าย</title>
+  <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+  <link rel="stylesheet" href="css/network.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<div class="app">
+
+  <!-- ── TOPNAV ── -->
+  <nav class="topnav">
+    <div class="topnav-logo" onclick="window.location.href='index.html'">🌿 Data Area North</div>
+
+    <button class="mobile-toggle" id="mobile-toggle" aria-label="เปิดเมนู" onclick="toggleMobileMenu()">
+      <span class="hamburger-line"></span>
+      <span class="hamburger-line"></span>
+      <span class="hamburger-line"></span>
+    </button>
+
+    <div class="topnav-links" id="topnav-links">
+      <a class="nav-link" onclick="window.location.href='index.html'">ธรรมนูญสุขภาพ</a>
+      <a class="nav-link" href="https://infocenter.nationalhealth.or.th/ข้อมูลผู้ป่วยที่มีการว/" target="_blank">มาตรา 12</a>
+      <a class="nav-link" onclick="window.location.href='4pw.html'">4PW</a>
+      <div class="nav-dropdown">
+        <div class="nav-link nav-dropdown-toggle" onclick="toggleHiaMenu(event)">
+          HIA <span class="arrow">▼</span>
+        </div>
+        <ul class="nav-submenu" id="hia-submenu">
+          <li><a class="nav-link" href="https://kokdatanewversion.vercel.app/" target="_blank">📊 เว็บไซต์ตรวจคุณภาพน้ำและดินในแม่น้ำกก</a></li>
+        </ul>
+      </div>
+      <a class="nav-link active" onclick="window.location.href='network.html'">ฐานข้อมูลเครือข่าย</a>
+    </div>
+
+    <div class="topnav-right">
+      <div id="auth-logged-out">
+        <button onclick="window.location.href='login.html'"
+          style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:white;border:1px solid var(--border);border-radius:8px;color:#1a1a1a;font-size:12px;font-weight:500;cursor:pointer;">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path d="M7 7C8.65685 7 10 5.65685 10 4C10 2.34315 8.65685 1 7 1C5.34315 1 4 2.34315 4 4C4 5.65685 5.34315 7 7 7Z" stroke="currentColor" stroke-width="1.2"/>
+            <path d="M1 13C1 10.2386 3.68629 8 7 8C10.3137 8 13 10.2386 13 13" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+          </svg>
+          เข้าสู่ระบบ
+        </button>
+      </div>
+      <div id="auth-logged-in" style="display:none;align-items:center;gap:8px;">
+        <div id="user-avatar"
+          style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#1D9E75,#0F6E56);color:white;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500;flex-shrink:0;cursor:pointer;">U</div>
+        <div style="min-width:0;">
+          <div id="user-name" style="font-size:12px;font-weight:500;color:#1a1a1a;">ผู้ใช้</div>
+          <div id="user-role" style="font-size:10px;color:#888;">user</div>
+        </div>
+        <button onclick="handleLogout()"
+          style="width:28px;height:28px;border:none;background:#f5f3f0;border-radius:50%;color:#e41515;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+          <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+            <path d="M8.5 3.5L12 7L8.5 10.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M12 7H5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+            <path d="M3 12V2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ── MAIN CONTENT ── -->
+  <div class="main">
+    <div class="nw-container">
+      <div class="nw-header">
+        <div class="nw-title">ฐานข้อมูลเครือข่าย</div>
+      </div>
+
+      <!-- FILTER BAR -->
+      <div class="nw-filter-bar">
+        <input type="text" id="nw-search" class="nw-search-input"
+               placeholder="🔍 ค้นหาชื่อ องค์กร ที่อยู่..."
+               oninput="applyFilters()">
+
+        <div class="type-pills">
+          <button class="type-pill active-all" data-type="all" onclick="setType('all')">ทั้งหมด</button>
+          <button class="type-pill" data-type="thammanun" onclick="setType('thammanun')">🌿 ธรรมนูญสุขภาพ</button>
+          <button class="type-pill" data-type="hia" onclick="setType('hia')">📊 HIA</button>
+          <button class="type-pill" data-type="mat12" onclick="setType('mat12')">📋 มาตรา 12</button>
+        </div>
+
+        <div class="filter-sep"></div>
+
+        <select id="nw-zone" onchange="onZoneChange()" style="min-width:130px;">
+          <option value="all">เขต</option>
+        </select>
+
+        <select id="nw-province" onchange="applyFilters()" style="min-width:140px;">
+          <option value="all">จังหวัด</option>
+        </select>
+
+        <button class="btn-reset-nw" onclick="resetFilters()">ล้างตัวกรอง</button>
+
+        <div id="btn-add-wrap" style="display:none;">
+          <button class="btn-add-nw" onclick="openAddModal()">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M7 2v10M2 7h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+            เพิ่มข้อมูลใหม่
+          </button>
+        </div>
+      </div>
+
+      <!-- STATS -->
+      <div class="nw-stats" id="nw-stats"></div>
+
+      <!-- TABLE -->
+      <div class="nw-table-wrap">
+        <table class="nw-table">
+          <thead>
+            <tr>
+              <th style="width:26%">ชื่อ / องค์กร</th>
+              <th style="width:12%">ประเภท</th>
+              <th style="width:8%">เขต</th>
+              <th style="width:12%">จังหวัด</th>
+              <th style="width:26%">ที่อยู่</th>
+              <th style="width:12%">เบอร์โทร</th>
+              <th id="th-actions" style="width:4%;display:none;"></th>
+            </tr>
+          </thead>
+          <tbody id="nw-tbody">
+            <tr><td colspan="7" class="nw-empty">กำลังโหลด...</td></tr>
+          </tbody>
+        </table>
+
+        <div class="nw-pager" id="nw-pager" style="display:none;">
+          <span class="nw-pager-info" id="nw-pager-info"></span>
+          <button class="nw-pager-btn" id="nw-prev" onclick="changePage(-1)">‹ ก่อนหน้า</button>
+          <button class="nw-pager-btn" id="nw-next" onclick="changePage(1)">ถัดไป ›</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+<!-- ── ADD / EDIT MODAL ── -->
+<div class="nw-modal-ov" id="nw-modal-ov">
+  <div class="nw-modal">
+    <h3 id="nw-modal-title">เพิ่มข้อมูลเครือข่าย</h3>
+    <input type="hidden" id="modal-id">
+
+    <div class="form-group">
+      <label>ชื่อ / องค์กร <span class="required">*</span></label>
+      <input type="text" id="modal-name" placeholder="ป้อนชื่อหรือชื่อองค์กร">
+    </div>
+
+    <div class="form-grid-2">
+      <div class="form-group">
+        <label>ประเภท <span class="required">*</span></label>
+        <select id="modal-type">
+          <option value="">ประเภท</option>
+          <option value="ธรรมนูญสุขภาพ">ธรรมนูญสุขภาพ</option>
+          <option value="HIA">HIA</option>
+          <option value="มาตรา12">มาตรา 12</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>เขต <span class="required">*</span></label>
+        <select id="modal-zone" onchange="fillProvinceByZone('modal-province-sel')">
+          <option value="">เขต</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>จังหวัด <span class="required">*</span></label>
+      <input type="text" id="modal-province-sel" 
+         list="province-datalist" 
+         placeholder="ป้อนชื่อจังหวัด" 
+         autocomplete="off">
+      <datalist id="province-datalist"></datalist>
+    </div>
+
+    <div class="form-group">
+      <label>ที่อยู่</label>
+      <textarea id="modal-address" placeholder="ป้อนที่อยู่"></textarea>
+    </div>
+
+    <div class="form-group">
+      <label>เบอร์โทรศัพท์</label>
+      <input type="tel" id="modal-phone" placeholder="ป้อนเบอร์โทรศัพท์">
+    </div>
+
+    <div class="nw-modal-actions">
+      <button class="btn-cancel-nw" onclick="closeModal()">ยกเลิก</button>
+      <button class="btn-save-nw" id="btn-save" onclick="saveRecord()">บันทึก</button>
+    </div>
+  </div>
+</div>
+</div>
+
+ <!-- ========== FOOTER ========== -->
+<div class="main">
+<footer class="site-footer">
+  <div class="footer-container">
+    <div class="footer-content">
+      <span class="footer-org">สำนักงานคณะกรรมการสุขภาพแห่งชาติ (สช.)</span>
+      <div class="footer-divider"></div>
+      <div class="footer-contact">
+        <span><span class="contact-label">ผู้พัฒนา:</span>นางสาวเบญวรรณ สาธุชน</span>
+        <span><span class="contact-label">อีเมล:</span> <a href="mailto:benyawansathuchon@gmail.com" class="contact-link" target="_blank" style="text-decoration: none; color:var(--muted, #aaa)">benyawansathuchon@gmail.com</a></span>
+        <span><span class="contact-label">โทร:</span> 063 542 0279</span>
+      </div>
+    </div>
+    <div class="footer-copyright">
+      © 2026  National Health Commission Office (NHCO). All rights reserved.
+    </div>
+  </div>
+</footer>
+</div>
+
+
+<!-- ── CONFIRM DELETE ── -->
+<div class="nw-confirm-ov" id="nw-confirm-ov">
+  <div class="nw-confirm-box">
+    <div style="font-size:32px;margin-bottom:10px;">🗑️</div>
+    <h4>ลบรายการ</h4>
+    <p id="nw-confirm-msg">คุณต้องการลบรายการนี้ใช่หรือไม่?</p>
+    <div class="nw-confirm-actions">
+      <button class="btn-cancel-nw" style="flex:1" onclick="closeConfirm()">ยกเลิก</button>
+      <button style="flex:1;padding:9px 16px;background:#E04031;color:#fff;border:none;border-radius:8px;font-size:13px;font-family:'Kanit',sans-serif;cursor:pointer;" onclick="confirmDelete()">ลบ</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── TOAST ── -->
+<div class="nw-toast" id="nw-toast"></div>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────
+const SUPABASE_URL = 'https://zfnualnoorhtdkrqwjpa.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpmbnVhbG5vb3JodGRrcnF3anBhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4NDkyNzEsImV4cCI6MjA5MDQyNTI3MX0._XuqPMrt9_Rx5aFybAqrxmKrlnU5g4JzKKz3aK2SORg';
+
+// ── ใช้ชื่อตาราง data_network ตรงกับ Supabase ──
+const TABLE_NAME = 'data_network';
+
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const PAGE_SIZE = 20;
+let allRecords = [];
+let filtered = [];
+let currentPage = 1;
+let currentType = 'all';
+let pendingDeleteId = null;
+let isLoggedIn = false;
+
+const $ = id => document.getElementById(id);
+
+// ── ZONE / PROVINCE DATA ───────────────────────────────
+// zone ใน Supabase เก็บเป็น "เขต 1", "เขต 2", "เขต 3"
+const ZONES = {
+  'เขต 1': { name: 'เขต 1', provinces: ['เชียงใหม่','ลำพูน','ลำปาง','แม่ฮ่องสอน'] },
+  'เขต 2': { name: 'เขต 2', provinces: ['พิษณุโลก','ตาก','สุโขทัย','อุตรดิตถ์','เพชรบูรณ์'] },
+  'เขต 3': { name: 'เขต 3', provinces: ['นครสวรรค์','กำแพงเพชร','ชัยนาท','พิจิตร','อุทัยธานี'] },
+};
+
+const ALL_PROVINCES = Object.values(ZONES).flatMap(z => z.provinces).sort((a,b) => a.localeCompare(b,'th'));
+
+// ── AUTH ──────────────────────────────────────────────
+function updateAuthUI() {
+  const out = $('auth-logged-out'), inn = $('auth-logged-in');
+  const addWrap = $('btn-add-wrap');
+  const thActions = $('th-actions');
+
+  try {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      const hoursDiff = (new Date() - new Date(user.loginTime)) / (1000*60*60);
+      if (hoursDiff < 24 && user.loggedIn) {
+        out.style.display = 'none';
+        inn.style.display = 'flex';
+        const n=$('user-name'), ro=$('user-role'), av=$('user-avatar');
+        if(n) n.textContent = user.name||user.username||'ผู้ใช้';
+        if(ro) ro.textContent = user.role||'user';
+        if(av) av.textContent = (user.name||user.username||'U').charAt(0).toUpperCase();
+        isLoggedIn = true;
+        if(addWrap) addWrap.style.display = 'block';
+        if(thActions) thActions.style.display = '';
+        renderTable(); return;
+      }
+    }
+  } catch(e){}
+
+  out.style.display='block'; inn.style.display='none';
+  isLoggedIn=false;
+  if(addWrap) addWrap.style.display='none';
+  if(thActions) thActions.style.display='none';
+  renderTable();
+}
+
+function handleLogout() {
+  localStorage.removeItem('user');
+  updateAuthUI();
+  showToast('ออกจากระบบเรียบร้อย');
+  setTimeout(()=>location.reload(), 1000);
+}
+
+// ── LOAD DATA จาก Supabase ตาราง data_network ─────────
+async function loadData() {
+  try {
+    showLoadingState();
+    const { data, error } = await db
+      .from(TABLE_NAME)
+      .select('*')
+      .order('id', { ascending: false });
+
+    if (error) {
+      console.error('Supabase error:', error);
+      showToast('❌ ไม่สามารถโหลดข้อมูลได้: ' + error.message, true);
+      allRecords = [];
+    } else {
+      allRecords = data || [];
+    }
+  } catch(err) {
+    console.error('Network error:', err);
+    showToast('❌ เกิดข้อผิดพลาดในการเชื่อมต่อ', true);
+    allRecords = [];
+  }
+
+  populateZoneDropdown();
+  populateProvinceDropdown('nw-province', 'all');
+  applyFilters();
+}
+
+function showLoadingState() {
+  $('nw-tbody').innerHTML = `<tr><td colspan="7" class="nw-empty">⏳ กำลังโหลดข้อมูลจาก Supabase...</td></tr>`;
+}
+
+// ── POPULATE DROPDOWNS ────────────────────────────────
+function populateZoneDropdown() {
+  // dropdown กรองหน้าตาราง
+  const sel = $('nw-zone');
+  sel.innerHTML = '<option value="all">เขต</option>';
+  Object.keys(ZONES).forEach(k => {
+    sel.innerHTML += `<option value="${k}">${k}</option>`;
+  });
+
+  // dropdown ใน modal
+  const mSel = $('modal-zone');
+  mSel.innerHTML = '<option value="">เขต</option>';
+  Object.keys(ZONES).forEach(k => {
+    mSel.innerHTML += `<option value="${k}">${k}</option>`;
+  });
+}
+
+function populateProvinceDropdown(selectId, zoneKey) {
+  const sel = $(selectId);
+
+  if (selectId === 'nw-province') {
+    let provinces;
+
+    if (zoneKey === 'all' || !zoneKey) {
+      // ไม่ได้เลือกเขต → แสดงจังหวัดที่มีข้อมูลทั้งหมด
+      provinces = [...new Set(allRecords.map(r => r.province).filter(Boolean))]
+        .sort((a, b) => a.localeCompare(b, 'th'));
+    } else {
+      // ✅ แค่ filter จาก allRecords ตรงๆ ไม่ต้องเช็ค ZONES
+      provinces = [...new Set(
+        allRecords
+          .filter(r => r.zone === zoneKey && r.province)
+          .map(r => r.province)
+      )].sort((a, b) => a.localeCompare(b, 'th'));
+    }
+
+    sel.innerHTML = '<option value="all">จังหวัด</option>';
+    provinces.forEach(p => sel.innerHTML += `<option value="${p}">${p}</option>`);
+
+  } else {
+    // modal ยังใช้ ZONES static เหมือนเดิม
+    const provinces = (!zoneKey || zoneKey === 'all')
+      ? ALL_PROVINCES
+      : (ZONES[zoneKey]?.provinces || []);
+
+    sel.innerHTML = '<option value="">-- เลือกจังหวัด --</option>';
+    provinces.forEach(p => sel.innerHTML += `<option value="${p}">${p}</option>`);
+  }
+}
+
+function onZoneChange() {
+  $('nw-province').value = 'all'; // reset จังหวัดที่เลือกอยู่
+  populateProvinceDropdown('nw-province', $('nw-zone').value);
+  applyFilters();
+}
+
+function fillProvinceByZone(selectId) {
+  const zone = $('modal-zone').value;
+  populateProvinceDropdown(selectId, zone);
+}
+
+// ── TYPE MAPPING ──────────────────────────────────────
+// map ค่า pill (thammanun/hia/mat12) → ค่าจริงใน Supabase
+const TYPE_DB_VALUES = {
+  thammanun: ['ธรรมนูญสุขภาพ', 'thammanun'],
+  hia:       ['HIA', 'hia'],
+  mat12:     ['มาตรา12', 'มาตรา 12', 'mat12'],
+};
+
+// ── FILTER ────────────────────────────────────────────
+function setType(type) {
+  currentType = type;
+  document.querySelectorAll('.type-pill').forEach(btn => {
+    btn.className = 'type-pill';
+    if (btn.dataset.type === type) {
+      btn.className = `type-pill active-${type}`;
+    }
+  });
+  applyFilters();
+}
+
+function applyFilters() {
+  const q = ($('nw-search').value||'').trim().toLowerCase();
+  const zone = $('nw-zone').value;
+  const province = $('nw-province').value;
+
+  filtered = allRecords.filter(r => {
+    // กรอง type pill
+    if (currentType !== 'all') {
+      const allowedValues = TYPE_DB_VALUES[currentType] || [];
+      if (!allowedValues.includes(r.type)) return false;
+    }
+    // กรอง zone dropdown
+    if (zone !== 'all' && r.zone !== zone) return false;
+    // กรอง province dropdown
+    if (province !== 'all' && r.province !== province) return false;
+
+    // ── ค้นหาข้อความ: รวม type และ zone ด้วย ──
+    if (q) {
+      const { label: typeLabel } = getTypeLabel(r.type);
+
+      // ✅ สร้าง zone แบบไม่มีเว้นวรรค เช่น "เขต 1" → "เขต1"
+      const zoneNoSpace = (r.zone || '').replace(/\s/g, '');
+
+      const hay = [
+        r.name    || '',
+        r.address || '',
+        r.province|| '',
+        r.phone   || '',
+        r.zone    || '',    // "เขต 1"
+        zoneNoSpace,        // "เขต1"
+        r.type    || '',
+        typeLabel || '',
+      ].join(' ').toLowerCase();
+
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+
+  currentPage = 1;
+  updateStats();
+  renderTable();
+}
+
+function resetFilters() {
+  $('nw-search').value = '';
+  $('nw-zone').value = 'all';
+  populateProvinceDropdown('nw-province', 'all');
+  currentType = 'all';
+  document.querySelectorAll('.type-pill').forEach(btn => {
+    btn.className = 'type-pill';
+    if (btn.dataset.type === 'all') btn.className = 'type-pill active-all';
+  });
+  applyFilters();
+}
+
+// ── STATS ─────────────────────────────────────────────
+function updateStats() {
+  const total = filtered.length;
+  const counts = { thammanun:0, hia:0, mat12:0 };
+  filtered.forEach(r => {
+    const t = r.type || '';
+    if (TYPE_DB_VALUES.thammanun.includes(t)) counts.thammanun++;
+    else if (TYPE_DB_VALUES.hia.includes(t))  counts.hia++;
+    else if (TYPE_DB_VALUES.mat12.includes(t)) counts.mat12++;
+  });
+
+  $('nw-stats').innerHTML = `
+    <div class="stat-chip">
+      <div class="dot" style="background:#1a1a1a;"></div>
+      ทั้งหมด <span class="num">${total}</span> รายการ
+    </div>
+    <div class="stat-chip">
+      <div class="dot" style="background:var(--green);"></div>
+      ธรรมนูญสุขภาพ <span class="num">${counts.thammanun}</span> รายการ
+    </div>
+    <div class="stat-chip">
+      <div class="dot" style="background:var(--amber);"></div>
+      HIA <span class="num">${counts.hia}</span> รายการ
+    </div>
+    <div class="stat-chip">
+      <div class="dot" style="background:var(--blue);"></div>
+      มาตรา 12 <span class="num">${counts.mat12}</span> รายการ
+    </div>
+  `;
+}
+
+// ── RENDER TABLE ──────────────────────────────────────
+// map ค่าจริงใน DB → label ที่แสดง + CSS class
+function getTypeLabel(type) {
+  if (!type) return { label: '—', cls: '' };
+  const t = type.trim();
+  if (TYPE_DB_VALUES.thammanun.includes(t)) return { label: 'ธรรมนูญสุขภาพ', cls: 'badge-thammanun' };
+  if (TYPE_DB_VALUES.hia.includes(t))       return { label: 'HIA',            cls: 'badge-hia' };
+  if (TYPE_DB_VALUES.mat12.includes(t))     return { label: 'มาตรา 12',       cls: 'badge-mat12' };
+  return { label: escHtml(t), cls: '' };
+}
+
+function renderTable() {
+  const tbody = $('nw-tbody');
+  const total = filtered.length;
+  const totalPages = Math.ceil(total / PAGE_SIZE) || 1;
+  if (currentPage > totalPages) currentPage = totalPages;
+  const start = (currentPage-1)*PAGE_SIZE;
+  const pageData = filtered.slice(start, start+PAGE_SIZE);
+
+  if (!pageData.length) {
+    tbody.innerHTML = `<tr><td colspan="7" class="nw-empty">🔍 ไม่พบข้อมูล${allRecords.length === 0 ? '' : ''}</td></tr>`;
+    $('nw-pager').style.display = 'none';
+    return;
+  }
+
+  tbody.innerHTML = pageData.map(r => {
+    const { label: typeLabel, cls: typeCls } = getTypeLabel(r.type);
+    return `
+    <tr>
+      <td>
+        <div class="nw-name">${escHtml(r.name||'(ไม่มีชื่อ)')}</div>
+      </td>
+      <td>
+        <span class="badge-type ${typeCls}">${typeLabel}</span>
+      </td>
+      <td>
+        ${r.zone ? `<span class="badge-zone">${escHtml(r.zone)}</span>` : '—'}
+      </td>
+      <td>
+        ${r.province ? `<span class="badge-prov">${escHtml(r.province)}</span>` : '—'}
+      </td>
+      <td>
+        <div class="nw-addr">${escHtml(r.address||'—')}</div>
+      </td>
+      <td>
+        <div class="nw-phone">
+          ${r.phone ? escHtml(r.phone) : '—'}
+        </div>
+      </td>
+      <td style="${isLoggedIn?'':'display:none'}">
+        <div style="display:flex;gap:5px;flex-wrap:nowrap;white-space:nowrap">
+          <button class="btn-edit" onclick="openEditModal(${r.id})">✏️ แก้ไข</button>
+          <button class="btn-del-modal" onclick="openDeleteConfirm(${r.id},'${escHtml(r.name||'')}')">🗑️ ลบ</button>
+        </div>
+      </td>
+    </tr>
+  `;}).join('');
+
+  const pager = $('nw-pager');
+  $('nw-pager-info').textContent = `แสดง ${start+1}–${Math.min(start+PAGE_SIZE,total)} จาก ${total} รายการ`;
+  $('nw-prev').disabled = currentPage<=1;
+  $('nw-next').disabled = currentPage>=totalPages;
+  pager.style.display = totalPages>1 ? 'flex' : 'none';
+}
+
+function changePage(dir) { currentPage+=dir; renderTable(); }
+
+// ── MODAL ─────────────────────────────────────────────
+function openAddModal() {
+  $('nw-modal-title').textContent = 'เพิ่มข้อมูลเครือข่าย';
+  $('modal-id').value = '';
+  $('modal-name').value = '';
+  $('modal-type').value = '';
+  $('modal-zone').value = '';
+  $('modal-address').value = '';
+  $('modal-phone').value = '';
+  populateProvinceDropdown('modal-province-sel', '');
+  $('nw-modal-ov').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+
+function openEditModal(id) {
+  const r = allRecords.find(x=>x.id===id);
+  if(!r) return;
+  $('nw-modal-title').textContent = 'แก้ไขข้อมูลเครือข่าย';
+  $('modal-id').value = r.id;
+  $('modal-name').value = r.name||'';
+  $('modal-type').value = r.type||'';
+  $('modal-zone').value = r.zone||'';
+  $('modal-address').value = r.address||'';
+  $('modal-phone').value = r.phone||'';
+  populateProvinceDropdown('modal-province-sel', r.zone||'');
+  setTimeout(()=>{ $('modal-province-sel').value = r.province||''; }, 50);
+  $('nw-modal-ov').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+  $('nw-modal-ov').classList.remove('show');
+  document.body.style.overflow = '';
+}
+
+// ── SAVE (INSERT / UPDATE) ────────────────────────────
+async function saveRecord() {
+  const id = $('modal-id').value;
+  const name = $('modal-name').value.trim();
+  const type = $('modal-type').value;
+  const zone = $('modal-zone').value;
+  const province = $('modal-province-sel').value;
+
+  if (!name || !type || !zone || !province) {
+    showToast('กรุณากรอกข้อมูลที่จำเป็นให้ครบ', true);
+    return;
+  }
+
+  const saveBtn = $('btn-save');
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'กำลังบันทึก...';
+
+  // ── payload ตรงกับ column ใน data_network ──
+  const payload = {
+    name,
+    type,
+    zone,
+    province,
+    address: $('modal-address').value.trim(),
+    phone:   $('modal-phone').value.trim(),
+  };
+
+  try {
+    let error;
+    if (id) {
+      // UPDATE
+      ({ error } = await db
+        .from(TABLE_NAME)
+        .update(payload)
+        .eq('id', id));
+    } else {
+      // INSERT
+      ({ error } = await db
+        .from(TABLE_NAME)
+        .insert([payload]));
+    }
+
+    if (error) {
+      console.error('Save error:', error);
+      showToast('❌ เกิดข้อผิดพลาด: ' + error.message, true);
+      return;
+    }
+
+    showToast(id ? '✅ อัปเดตข้อมูลเรียบร้อย' : '✅ เพิ่มข้อมูลเรียบร้อย');
+    closeModal();
+    await loadData();
+  } catch(err) {
+    console.error('Unexpected error:', err);
+    showToast('❌ ' + err.message, true);
+  } finally {
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'บันทึก';
+  }
+}
+
+// ── DELETE ────────────────────────────────────────────
+function openDeleteConfirm(id, name) {
+  pendingDeleteId = id;
+  $('nw-confirm-msg').textContent = `คุณต้องการลบ "${name}" ใช่หรือไม่?`;
+  $('nw-confirm-ov').classList.add('show');
+}
+
+function closeConfirm() {
+  $('nw-confirm-ov').classList.remove('show');
+  pendingDeleteId = null;
+}
+
+async function confirmDelete() {
+  if (!pendingDeleteId) return;
+
+  try {
+    const { error } = await db
+      .from(TABLE_NAME)
+      .delete()
+      .eq('id', pendingDeleteId);
+
+    if (error) {
+      console.error('Delete error:', error);
+      showToast('❌ เกิดข้อผิดพลาด: ' + error.message, true);
+      return;
+    }
+
+    showToast('🗑️ ลบข้อมูลเรียบร้อย');
+    closeConfirm();
+    await loadData();
+  } catch(err) {
+    showToast('❌ ' + err.message, true);
+  }
+}
+
+// ── HELPERS ───────────────────────────────────────────
+function escHtml(s) {
+  return String(s)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;');
+}
+
+let toastTimer;
+function showToast(msg, isError=false) {
+  const t=$('nw-toast');
+  t.textContent=msg;
+  t.style.borderLeftColor = isError ? '#E04031' : '#1D9E75';
+  t.style.display='block';
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>{t.style.display='none';},3500);
+}
+
+// ── NAV ───────────────────────────────────────────────
+function toggleMobileMenu() {
+  const menu = $('topnav-links');
+  const btn  = $('mobile-toggle');
+  if (menu && btn) {
+    menu.classList.toggle('active');
+    btn.classList.toggle('active');
+  }
+}
+
+function toggleHiaMenu(e) {
+  e.stopPropagation();
+  e.preventDefault();
+  const submenu = $('hia-submenu');
+  const toggle  = e.currentTarget;
+  if (submenu) {
+    submenu.classList.toggle('show');
+    if (toggle) toggle.classList.toggle('active');
+  }
+}
+
+function toggleUserMenu() {
+  if (window.innerWidth > 768) return;
+  document.getElementById('mobile-user-menu')?.remove();
+  const menu = document.createElement('div');
+  menu.id = 'mobile-user-menu';
+  menu.style.cssText = `
+    position:fixed; top:60px; right:16px;
+    background:white; border:1px solid rgba(0,0,0,0.08);
+    border-radius:8px; padding:8px 0;
+    box-shadow:0 4px 12px rgba(0,0,0,0.15);
+    z-index:9999; min-width:140px;
+  `;
+  menu.innerHTML = `
+    <div style="padding:8px 16px;font-size:13px;font-weight:500;color:#1a1a1a;">
+      ${$('user-name')?.textContent || 'ผู้ใช้'}
+    </div>
+    <div style="padding:8px 16px;font-size:11px;color:#888;border-top:1px solid rgba(0,0,0,0.08);">
+      ${$('user-role')?.textContent || 'user'}
+    </div>
+    <button onclick="handleLogout();document.getElementById('mobile-user-menu')?.remove();"
+      style="width:100%;padding:8px 16px;text-align:left;font-size:13px;
+             color:#E04031;background:none;border:none;cursor:pointer;
+             font-family:'Kanit',sans-serif;">
+      🚪 ออกจากระบบ
+    </button>
+  `;
+  document.body.appendChild(menu);
+  setTimeout(() => {
+    document.addEventListener('click', function closeMenu(e) {
+      if (!e.target.closest('#mobile-user-menu') &&
+          !e.target.closest('#user-avatar')) {
+        menu.remove();
+        document.removeEventListener('click', closeMenu);
+      }
+    });
+  }, 100);
+}
+
+document.addEventListener('click', e => {
+  const sub      = $('hia-submenu');
+  const tog      = document.querySelector('.nav-dropdown-toggle');
+  const mobileMenu = $('topnav-links');
+  const mobileBtn  = $('mobile-toggle');
+
+  if (sub && !e.target.closest('.nav-dropdown')) {
+    sub.classList.remove('show');
+    if (tog) tog.classList.remove('active');
+  }
+  if (mobileMenu?.classList.contains('active') &&
+      e.target.closest('.nav-link') &&
+      !e.target.closest('.nav-dropdown-toggle')) {
+    mobileMenu.classList.remove('active');
+    if (mobileBtn) mobileBtn.classList.remove('active');
+  }
+});
+
+// ── INIT ──────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', async () => {
+  // ตั้งค่า avatar click
+  const avatar = document.getElementById('user-avatar');
+  if (avatar) {
+    avatar.style.cursor = 'pointer';
+    avatar.onclick = toggleUserMenu;
+  }
+
+  updateAuthUI();
+  populateZoneDropdown();
+  await loadData();
+
+  $('nw-modal-ov').addEventListener('click', e => { if(e.target===$('nw-modal-ov')) closeModal(); });
+  $('nw-confirm-ov').addEventListener('click', e => { if(e.target===$('nw-confirm-ov')) closeConfirm(); });
+  document.addEventListener('keydown', e => { if(e.key==='Escape'){ closeModal(); closeConfirm(); } });
+});
+</script>
+</body>
+</html>

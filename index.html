@@ -1,0 +1,1615 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Data Area North</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=IBM+Plex+Sans+Thai:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+  <link rel="stylesheet" href="css/style.css">
+
+</head>
+<body>
+<div class="app">
+
+  <nav class="topnav">
+  <div class="topnav-logo" onclick="window.location.href='index.html'">🌿 Data Area North</div>
+
+  
+  <!-- ✅ ปุ่ม Hamburger (แสดงเฉพาะมือถือ) -->
+  <button class="mobile-toggle" id="mobile-toggle" aria-label="เปิดเมนู" onclick="toggleMobileMenu()">
+    <span class="hamburger-line"></span>
+    <span class="hamburger-line"></span>
+    <span class="hamburger-line"></span>
+  </button>
+
+  <div class="topnav-links" id="topnav-links">
+  <a class="nav-link active" onclick="window.location.href='index.html'">ธรรมนูญสุขภาพ</a>
+  <a class="nav-link" href="https://infocenter.nationalhealth.or.th/ข้อมูลผู้ป่วยที่มีการว/" target="_blank">มาตรา 12</a>
+  <a class="nav-link" onclick="window.location.href='4pw.html'">4PW</a>
+  
+  
+  <!-- ✅ เมนู HIA แบบ Dropdown (ใส่ตรงนี้) -->
+  <div class="nav-dropdown">
+    <div class="nav-link nav-dropdown-toggle" onclick="toggleHiaMenu(event)">
+      HIA <span class="arrow">▼</span>
+    </div>
+    <ul class="nav-submenu" id="hia-submenu">
+      <li><a class="nav-link" href="https://kokdatanewversion.vercel.app/" target="_blank">📊 เว็บไซต์ตรวจคุณภาพน้ำและดินในแม่น้ำกก</a></li>
+    </ul>
+  </div>
+  <a class="nav-link" onclick="window.location.href='network.html'">ฐานข้อมูลเครือข่าย</a>
+</div>
+
+  <div class="topnav-right">
+    <!-- Auth: logged out -->
+    <div id="auth-logged-out">
+      <button onclick="window.location.href='login.html'"
+        style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:white;border:1px solid var(--border);border-radius:8px;color:#1a1a1a;font-size:12px;font-weight:500;cursor:pointer;">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <path d="M7 7C8.65685 7 10 5.65685 10 4C10 2.34315 8.65685 1 7 1C5.34315 1 4 2.34315 4 4C4 5.65685 5.34315 7 7 7Z" stroke="currentColor" stroke-width="1.2"/>
+          <path d="M1 13C1 10.2386 3.68629 8 7 8C10.3137 8 13 10.2386 13 13" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+        </svg>
+        เข้าสู่ระบบ
+      </button>
+    </div>
+
+    <!-- Auth: logged in -->
+    <div id="auth-logged-in" style="display:none;align-items:center;gap:8px;">
+      <div id="user-avatar" 
+        style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#1D9E75,#0F6E56);color:white;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500;flex-shrink:0;">
+        U
+      </div>
+      <div style="min-width:0;">
+        <div id="user-name" style="font-size:12px;font-weight:500;color:#1a1a1a;white-space:nowrap;">ผู้ใช้</div>
+        <div id="user-role" style="font-size:10px;color:#888;">user</div>
+      </div>
+      <button onclick="handleLogout()"
+        style="width:28px;height:28px;border:none;background:#f5f3f0;border-radius:50%;color:#e41515;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+        <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+          <path d="M8.5 3.5L12 7L8.5 10.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M12 7H5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+          <path d="M3 12V2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+</nav>
+
+
+<!-- ── MAIN ── -->
+<div class="main">
+
+  <div style="text-align: center; padding: 16px 24px; width: 100%;">
+  <div style="font-size: 30px; font-weight: 600; color: #1a1a1a; display: inline-block;">ฐานข้อมูลธรรมนูญภาคเหนือ</div>
+</div>
+
+  <!-- CONTENT -->
+  <div class="content">
+
+    <!-- FILTER STRIP -->
+    <div class="filter-strip">
+      <input id="gf-search" class="search-input-long" type="text" 
+       placeholder="🔍 ค้นหาชื่อธรรมนูญ / จังหวัด / อำเภอ..."
+       style="font-family:'Kanit', 'Kodchasan', 'Mali', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+      <div class="filter-divider"></div>
+      <select id="gf-zone" style="font-family:'Kanit', 'Kodchasan', 'Mali', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+        <option value="all">เขต</option>
+        <option value="1">เขต 1</option>
+        <option value="2">เขต 2</option>
+        <option value="3">เขต 3</option>
+      </select>
+      <select id="gf-province" style="font-family:'Kanit', 'Kodchasan', 'Mali', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;"><option value="all">จังหวัด</option></select>
+      <select id="gf-district" style="font-family:'Kanit', 'Kodchasan', 'Mali', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;"><option value="all">อำเภอ</option></select>
+      <select id="gf-subdistrict" style="font-family:'Kanit', 'Kodchasan', 'Mali', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;"><option value="all">ตำบล</option></select>
+      <div class="filter-divider"></div>
+      <select id="gf-title" style="font-family:'Kanit', 'Kodchasan', 'Mali', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;"><option value="all">ประเด็น</option></select>
+      <select id="gf-year" style="font-family:'Kanit', 'Kodchasan', 'Mali', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;"><option value="all">ปี พ.ศ.</option></select>
+      <div class="filter-divider"></div>
+      <button style="padding: 7px 12px;border-radius: 7px;border: 1px solid var(--border);background: #433e3ec1;color: white;
+      font-size: 12px;cursor: pointer;transition: all 0.15s; hover { background: #ccc6c6; }" onclick="resetFilters()">ล้างตัวกรอง</button>
+    </div>
+
+    <!-- KPI ROW -->
+    <div class="kpi-grid" style="grid-template-columns: repeat(4, 1fr);">
+      <div class="kpi-card">
+        <div class="kpi-label">ธรรมนูญสุขภาพทั้งหมด</div>
+        <div class="kpi-value" id="kpi-total">--</div>
+        <div class="kpi-unit">ฉบับ</div>
+      </div>
+      <div class="kpi-card amber">
+        <div class="kpi-label">จังหวัดที่มีธรรมนูญ</div>
+        <div class="kpi-value" id="kpi-provinces">--</div>
+        <div class="kpi-unit">จาก 17 จังหวัด</div>
+      </div>
+      <div class="kpi-card blue">
+        <div class="kpi-label">อำเภอที่มีธรรมนูญ</div>
+        <div class="kpi-value" id="kpi-districts">--</div>
+        <div class="kpi-unit">อำเภอ</div>
+      </div>
+      <div class="kpi-card" style="--accent:#9B59B6;">
+        <div class="kpi-label">ตำบลที่มีธรรมนูญ</div>
+        <div class="kpi-value" id="kpi-subdistricts">--</div>
+        <div class="kpi-unit">ตำบล</div>
+      </div>
+    </div>
+
+    <!-- MAP + STATUS ROW -->
+    <div class="two-col">
+      <!-- MAP -->
+      <div class="card" style="padding:0;overflow:hidden;grid-column: span 1;">
+        <div style="padding:14px 16px 0;">
+          <div class="card-title">แผนที่ธรรมนูญสุขภาพภาคเหนือ</div>
+          <div class="card-sub">คลิก marker เพื่อดูรายชื่อธรรมนูญในพื้นที่</div>
+        </div>
+        <div id="leaflet-map"></div>
+      </div>
+
+      <!-- RIGHT PANEL -->
+      <div style="display:flex;flex-direction:column;gap:16px;">
+
+        <!-- STATUS CHART -->
+        <div class="card">
+          <div class="card-title">สถานะธรรมนูญสุขภาพ</div>
+          <div class="card-sub">แสดงสัดส่วนแต่ละขั้นตอนการดำเนินงาน</div>
+          <div id="status-chart-container">
+            <div style="text-align:center;padding:20px;color:#aaa;font-size:12px;">กำลังโหลด...</div>
+            <select id="gf-status" style="display:none;"></select>
+          </div>
+        </div>
+
+        <!-- ZONE SUMMARY -->
+        <div class="card">
+          <div class="card-title">สรุปตามเขตสุขภาพ</div>
+          <div class="card-sub">จำนวนธรรมนูญแยกตามเขต</div>
+          <div id="zone-summary">
+            <div style="text-align:center;padding:20px;color:#aaa;font-size:12px;">กำลังโหลด...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TOPIC BARS + CHARTER LIST -->
+    <div class="two-col">
+      <!-- TOPIC BARS -->
+      <div class="card">
+        <div class="card-title">สัดส่วนตามประเด็นธรรมนูญ</div>
+        <div class="card-sub">คลิกเพื่อกรอง</div>
+        <div id="topic-bars-container">
+          <div style="text-align:center;padding:20px;color:#aaa;font-size:12px;">กำลังโหลด...</div>
+        </div>
+      </div>
+  </div><!-- /content -->
+</div><!-- /main -->
+<!-- ========== FOOTER ========== -->
+<footer class="site-footer">
+  <div class="footer-container">
+    
+    <!-- ส่วนซ้าย: องค์กรและข้อมูลติดต่อ -->
+    <div class="footer-content">
+      <span class="footer-org">สำนักงานคณะกรรมการสุขภาพแห่งชาติ (สช.)</span>
+      
+      <div class="footer-divider"></div>
+      
+      <div class="footer-contact">
+        <span><span class="contact-label">ผู้พัฒนา:</span>นางสาวเบญวรรณ สาธุชน</span>
+        <span><span class="contact-label">อีเมล:</span> <a href="mailto:benyawansathuchon@gmail.com" class="contact-link" target="_blank" style="text-decoration: none; color:var(--muted, #aaa)">benyawansathuchon@gmail.com</a></span>
+        <span><span class="contact-label">โทร:</span> 063 542 0279</span>
+      </div>
+    </div>
+    
+    <!-- ส่วนขวา: ลิขสิทธิ์ (ดันไปขวาด้วย margin-left: auto ใน CSS) -->
+    <div class="footer-copyright">
+      © 2026  National Health Commission Office (NHCO). All rights reserved.
+    </div>
+    
+  </div>
+</footer>
+</div><!-- /app -->
+
+<!-- FLOATING ADD BTN (mobile) -->
+<button id="floating-add-btn" onclick="handleAddClick()" title="เพิ่มข้อมูลใหม่">+</button>
+
+<!-- MAP MODAL -->
+<div id="map-modal-ov" class="modal-ov">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div>
+        <div id="modal-title" style="font-size:15px;font-weight:600;color:var(--text);">📍 พื้นที่</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px;">ธรรมนูญสุขภาพ: <span id="modal-count">0</span> ฉบับ</div>
+      </div>
+      <button class="modal-close-btn" onclick="closeMapModal()" aria-label="ปิด">✕</button>
+    </div>
+    <div class="modal-search-bar">
+      <div style="display:flex;gap:8px;margin-bottom:8px;">
+      </div>
+      <div class="modal-search-wrap">
+        <span class="modal-search-icon">🔍</span>
+        <input type="text" id="modal-search" placeholder="ค้นหาชื่อ, อำเภอ, ตำบล, แกนนำ..." style="font-family: 'Kanit', 'Kodchasan', 'Mali', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+      </div>
+    </div>
+    <div class="modal-body" id="modal-content"></div>
+    <div class="modal-footer">
+      <div style="font-size:11px;color:var(--muted);">แสดง <span id="modal-showing">0</span> รายการ</div>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM MODAL -->
+<div id="confirm-modal">
+  <div style="background:white;border-radius:16px;padding:24px;max-width:360px;width:100%;box-shadow:0 16px 48px rgba(0,0,0,0.2);">
+    <div style="text-align:center;margin-bottom:20px;">
+      <div style="width:56px;height:56px;background:#FFF4E6;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:28px;">👋</div>
+      <h3 style="font-size:17px;font-weight:600;color:var(--text);margin-bottom:6px;">ออกจากระบบ</h3>
+      <p style="font-size:13px;color:#666;">คุณต้องการออกจากระบบใช่หรือไม่?</p>
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn-modal-cancel" onclick="document.getElementById('confirm-modal').style.display='none'">ยกเลิก</button>
+      <button class="btn-modal-confirm" onclick="confirmLogout()">ออกจากระบบ</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast-notification" style="position:fixed;top:20px;right:20px;background:white;border-radius:10px;padding:14px 18px;box-shadow:0 8px 32px rgba(0,0,0,0.15);border-left:4px solid var(--green);display:none;z-index:9999;min-width:260px;"></div>
+
+<!-- DELETE CONFIRM MODAL -->
+<div id="del-record-ov" class="del-confirm-ov">
+  <div class="del-confirm-box">
+    <div class="del-confirm-icon">🗑️</div>
+    <div class="del-confirm-title">ยืนยันการลบ</div>
+    <p class="del-confirm-msg" id="del-record-msg">คุณต้องการลบรายการนี้ใช่หรือไม่?</p>
+    <div class="del-confirm-actions">
+      <button class="del-confirm-cancel" onclick="closeDelRecord()">ยกเลิก</button>
+      <button class="del-confirm-delete" onclick="confirmDelRecord()">🗑️ ลบ</button>
+    </div>
+  </div>
+</div>
+  
+<script>
+// ── CONFIG ──────────────────────────────────────────────────
+const SUPABASE_URL = 'https://zfnualnoorhtdkrqwjpa.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpmbnVhbG5vb3JodGRrcnF3anBhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4NDkyNzEsImV4cCI6MjA5MDQyNTI3MX0._XuqPMrt9_Rx5aFybAqrxmKrlnU5g4JzKKz3aK2SORg';
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ── ZONE MAPPING ──────────────────────────────────────────
+const ZONE_MAP = {
+  '1': ['เชียงใหม่','ลำพูน','ลำปาง','แม่ฮ่องสอน'],
+  '2': ['พิษณุโลก','อุตรดิตถ์','เพชรบูรณ์','สุโขทัย','ตาก'],
+  '3': ['นครสวรรค์','อุทัยธานี','กำแพงเพชร','พิจิตร','ชัยนาท'],
+};
+const ZONE_EXTRA = {
+  '1': ['เชียงราย','พะเยา','แพร่','น่าน'],
+};
+// เพิ่มจังหวัดเพิ่มเติมใน zone1
+ZONE_MAP['1'] = [...ZONE_MAP['1'], ...(ZONE_EXTRA['1'] || [])];
+
+const PROVINCE_COORDS = {
+  'เชียงใหม่': [18.787, 98.993], 'เชียงราย': [19.910, 99.840],
+  'ลำปาง': [18.289, 99.490],     'ลำพูน': [18.574, 99.009],
+  'แม่ฮ่องสอน': [19.302, 97.964], 'พะเยา': [19.163, 99.901],
+  'แพร่': [18.144, 100.140],     'น่าน': [18.783, 100.777],
+  'อุตรดิตถ์': [17.620, 100.099], 'ตาก': [16.879, 99.126],
+  'สุโขทัย': [17.007, 99.826],   'พิษณุโลก': [16.822, 100.265],
+  'เพชรบูรณ์': [16.419, 101.159], 'กำแพงเพชร': [16.484, 99.522],
+  'พิจิตร': [16.441, 100.349],   'นครสวรรค์': [15.703, 100.137],
+  'อุทัยธานี': [15.380, 100.025], 'ชัยนาท': [15.185, 100.125],
+};
+
+// ── STATUS STAGES ──────────────────────────────────────────
+const STATUS_STAGES = [
+  { key: 'กระบวนการยกร่าง', label: 'ยกร่าง', color: '#EF9F27' },
+  { key: 'รับฟังความคิดเห็น', label: 'รับฟังความคิดเห็น', color: '#81CCC5'},
+  { key: 'ประกาศใช้', label: 'ประกาศใช้', color: '#1D9E75' },
+  { key: 'ขับเคลื่อน', label: 'ขับเคลื่อน', color: '#378ADD' },
+  { key: 'ประเมินผล', label: 'ประเมินผล', color: '#9B59B6' },
+  { key: 'ทบทวนและปรับปรุง', label: 'ทบทวนและปรับปรุง', color: '#D4537E' },
+];
+
+// ── STATE ──────────────────────────────────────────────────
+let allCharters = [];
+let filteredCharters = [];
+let mainMap = null, mainLayer = null;
+let recentPage = 1;
+const PAGE = 8;
+let modalAllRows = [];
+
+// ── UTILS ──────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const tx = (id, v) => { const e=$(id); if(e) e.textContent = v ?? '—'; };
+
+function debounce(fn, ms=300) {
+  let t;
+  return (...args) => { clearTimeout(t); t = setTimeout(()=>fn(...args), ms); };
+}
+
+function strHash(s) {
+  let h = 0;
+  for (let i=0; i<s.length; i++) h = (Math.imul(31,h)+s.charCodeAt(i))|0;
+  return h;
+}
+
+function mockCoords(province, district, subdistrict) {
+  const base = PROVINCE_COORDS[province];
+  if (!base) return null;
+  const [lat, lng] = base;
+  const dh = strHash((district||'')+province);
+  const sh = strHash((subdistrict||'')+(district||'')+province);
+  const dLat = ((dh&0xFF)/255-0.5)*0.7;
+  const dLng = (((dh>>8)&0xFF)/255-0.5)*0.7;
+  const sLat = ((sh&0xFF)/255-0.5)*0.18;
+  const sLng = (((sh>>8)&0xFF)/255-0.5)*0.18;
+  return [+(lat+dLat+sLat).toFixed(5), +(lng+dLng+sLng).toFixed(5)];
+}
+
+function cleanName(n) {
+  if (!n) return null;
+  return String(n).trim().replace(/^จ\.?\s*/i,'').replace(/\s+/g,' ').trim();
+}
+
+function thDate(val) {
+  if (!val) return '—';
+  const thaiMonths = {'มกราคม':'01','กุมภาพันธ์':'02','มีนาคม':'03','เมษายน':'04','พฤษภาคม':'05','มิถุนายน':'06','กรกฎาคม':'07','สิงหาคม':'08','กันยายน':'09','ตุลาคม':'10','พฤศจิกายน':'11','ธันวาคม':'12'};
+  const match = String(val).match(/(\d{1,2})?\s*([ก-ฮ]+)\s+(\d{4})/);
+  if (match) {
+    const day = match[1] || '1', monthThai = match[2], yearBE = match[3];
+    if (thaiMonths[monthThai]) return `${day.padStart(2,'0')} ${monthThai} ${yearBE}`;
+    return val;
+  }
+  try {
+    const d = new Date(val);
+    if (isNaN(d.getTime())) return val;
+    const m=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'][d.getMonth()];
+    return `${d.getDate()} ${m} ${d.getFullYear()+543}`;
+  } catch { return val; }
+}
+
+function thYear(val) {
+  if (!val) return null;
+  const s = String(val).trim();
+  const m = s.match(/(\d{4})$/);
+  if (m) {
+    const y = parseInt(m[1]);
+    if (y>=2500 && y<=2600) return y;
+    if (y>=1900 && y<=2100) return y+543;
+  }
+  try {
+    const d = new Date(s);
+    if (!isNaN(d.getTime())) return d.getFullYear()+543;
+  } catch {}
+  const n = parseInt(s);
+  if (!isNaN(n)) { if (n>=2500&&n<=2600) return n; if (n>=1900&&n<=2100) return n+543; }
+  return null;
+}
+
+function getProvince(r) { return cleanName(r?.province) || ''; }
+
+function getZone(province) {
+  for (const [z, provs] of Object.entries(ZONE_MAP)) {
+    if (provs.includes(province)) return z;
+  }
+  return null;
+}
+
+// ── LOAD & FILTER ──────────────────────────────────────────
+async function loadData() {
+  const { data, error } = await db.from('data_charter').select('*');
+  if (error) { console.error(error); return; }
+  allCharters = data || [];
+  console.log('✅ Loaded', allCharters.length, 'charters');
+  populateFilters();
+  applyFilters();
+}
+
+function applyFilters() {
+  const zone   = $('gf-zone')?.value || 'all';
+  const prov   = $('gf-province')?.value || 'all';
+  const dist   = $('gf-district')?.value || 'all';
+  const sub    = $('gf-subdistrict')?.value || 'all';
+  const title  = $('gf-title')?.value || 'all';
+  const type   = $('gf-type')?.value || 'all';
+  const year   = $('gf-year')?.value || 'all';
+  const q      = ($('gf-search')?.value || '').trim().toLowerCase();
+  const status = $('gf-status')?.value || 'all';
+
+  filteredCharters = allCharters.filter(r => {
+    const p = getProvince(r);
+    if (zone !== 'all' && getZone(p) !== zone) return false;
+    if (prov !== 'all' && p !== cleanName(prov)) return false;
+    if (dist !== 'all' && r?.district !== dist) return false;
+    if (sub  !== 'all' && r?.subdistrict !== sub) return false;
+    if (title !== 'all' && r?.title !== title) return false;
+    if (type !== 'all' && (r?.charter_type || '') !== type) return false;
+    if (status !== 'all' && (r?.status || r?.charter_status || '') !== status) return false;
+
+    if (year !== 'all') {
+      const ry = thYear(r?.publish_date);
+      if (ry !== parseInt(year)) return false;
+    }
+    if (q) {
+      const s = [(r?.charter_name||''),(r?.province||''),(r?.district||''),(r?.subdistrict||'')].join(' ').toLowerCase();
+      if (!s.includes(q)) return false;
+    }
+    return true;
+  });
+
+  recentPage = 1;
+  renderAll();
+}
+
+function populateFilters() {
+  // จังหวัด: ดึงจาก allCharters ทั้งหมด
+  const provinces = [...new Set(allCharters.map(r=>r?.province).filter(Boolean))]
+    .sort((a,b)=>a.localeCompare(b,'th'));
+
+  // ประเด็น
+  const titles = [...new Set(allCharters.map(r=>r?.title).filter(Boolean))]
+    .sort((a,b)=>a.localeCompare(b,'th'));
+  fillSelect('gf-title', titles, 'ประเด็น');
+
+  // ปี
+  const years = [...new Set(allCharters.map(r=>thYear(r?.publish_date)).filter(Boolean))]
+    .sort((a,b)=>b-a);
+  const ySel = $('gf-year');
+  if (ySel) {
+    ySel.innerHTML = '<option value="all">ปี พ.ศ.</option>' + 
+      years.map(y=>`<option value="${y}">${y}</option>`).join('');
+  }
+  onZoneChange();
+
+  // อำเภอและตำบล: ให้เริ่มว่างก่อน (จะ populate เมื่อเลือกจังหวัด/อำเภอ)
+  const distSel = $('gf-district');
+  if (distSel) distSel.innerHTML = '<option value="all">อำเภอ</option>';
+  
+  const subSel = $('gf-subdistrict');
+  if (subSel) subSel.innerHTML = '<option value="all">ตำบล</option>';
+}
+
+function onProvinceChange() {
+  const province = $('gf-province')?.value;
+  const distSel = $('gf-district');
+  const subSel = $('gf-subdistrict');
+
+  if (distSel) distSel.innerHTML = '<option value="all">อำเภอ</option>';
+  if (subSel) subSel.innerHTML = '<option value="all">ตำบล</option>';
+
+  if (province && province !== 'all') {
+    const districts = [...new Set(
+      allCharters
+        .filter(r => cleanName(r?.province) === cleanName(province))
+        .map(r => r?.district)
+        .filter(Boolean)
+    )].sort((a, b) => a.localeCompare(b, 'th'));
+
+    if (distSel) {
+      distSel.innerHTML = '<option value="all">อำเภอ</option>' +
+        districts.map(d => `<option value="${d}">${d}</option>`).join('');
+    }
+  }
+  updateTitleFilter();
+  updateYearFilter();
+  applyFilters();
+}
+
+// ฟังก์ชัน cascade: เมื่อเลือกอำเภอ
+function onDistrictChange() {
+  const province = $('gf-province')?.value;
+  const district = $('gf-district')?.value;
+  const subSel = $('gf-subdistrict');
+
+  // reset ตำบล
+  if (subSel) subSel.innerHTML = '<option value="all">ตำบล</option>';
+
+  if (district && district !== 'all') {
+    // กรองตำบลตามจังหวัด+อำเภอที่เลือก
+    const subs = [...new Set(
+      allCharters
+        .filter(r => {
+          const provMatch = !province || province === 'all' || cleanName(r?.province) === cleanName(province);
+          return provMatch && r?.district === district;
+        })
+        .map(r => r?.subdistrict)
+        .filter(Boolean)
+    )].sort((a,b) => a.localeCompare(b,'th'));
+
+    if (subSel) {
+      subSel.innerHTML = '<option value="all">ตำบล</option>' + 
+        subs.map(s=>`<option value="${s}">${s}</option>`).join('');
+    }
+  }
+  updateTitleFilter();
+  updateYearFilter();
+  applyFilters();
+}
+
+// ฟังก์ชัน update ประเด็น ตาม context ที่เลือก
+function updateTitleFilter() {
+  const zone     = $('gf-zone')?.value;
+  const province = $('gf-province')?.value;
+  const district = $('gf-district')?.value;
+  const sub      = $('gf-subdistrict')?.value;
+  const titleSel = $('gf-title');
+  if (!titleSel) return;
+
+  const prevTitle = titleSel.value;
+
+  // กรองข้อมูลตาม context ปัจจุบัน (ก่อนกรอง title)
+  const contextRows = allCharters.filter(r => {
+    const p = getProvince(r);
+    if (zone && zone !== 'all' && getZone(p) !== zone) return false;
+    if (province && province !== 'all' && p !== cleanName(province)) return false;
+    if (district && district !== 'all' && r?.district !== district) return false;
+    if (sub && sub !== 'all' && r?.subdistrict !== sub) return false;
+    return true;
+  });
+
+  const titles = [...new Set(contextRows.map(r => r?.title).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, 'th'));
+
+  titleSel.innerHTML = '<option value="all">ประเด็น</option>' +
+    titles.map(t => `<option value="${t}">${t}</option>`).join('');
+
+  // รักษาค่าเดิมถ้ายังอยู่ใน list
+  if (prevTitle && prevTitle !== 'all' && titles.includes(prevTitle)) {
+    titleSel.value = prevTitle;
+  } else {
+    titleSel.value = 'all';
+  }
+}
+
+function updateYearFilter() {
+  const zone     = $('gf-zone')?.value;
+  const province = $('gf-province')?.value;
+  const district = $('gf-district')?.value;
+  const sub      = $('gf-subdistrict')?.value;
+  const yearSel  = $('gf-year');
+  if (!yearSel) return;
+
+  const prevYear = yearSel.value;
+
+  const contextRows = allCharters.filter(r => {
+    const p = getProvince(r);
+    if (zone     && zone     !== 'all' && getZone(p) !== zone)          return false;
+    if (province && province !== 'all' && p !== cleanName(province))     return false;
+    if (district && district !== 'all' && r?.district !== district)      return false;
+    if (sub      && sub      !== 'all' && r?.subdistrict !== sub)        return false;
+    return true;
+  });
+
+  const years = [...new Set(contextRows.map(r => thYear(r?.publish_date)).filter(Boolean))]
+    .sort((a, b) => b - a);
+
+  yearSel.innerHTML = '<option value="all">ปี พ.ศ.</option>' +
+    years.map(y => `<option value="${y}">${y}</option>`).join('');
+
+  if (prevYear && prevYear !== 'all' && years.includes(parseInt(prevYear))) {
+    yearSel.value = prevYear;
+  } else {
+    yearSel.value = 'all';
+  }
+}
+
+function fillSelect(id, items, label) {
+  const el = $(id); if (!el) return;
+  const prev = el.value;
+  el.innerHTML = `<option value="all">${label}</option>` + items.map(v=>`<option value="${v}">${v}</option>`).join('');
+  if (prev && prev !== 'all') el.value = prev;
+}
+
+function resetFilters() {
+  ['gf-search','gf-zone','gf-title','gf-type','gf-year'].forEach(id => {
+    const el = $(id);
+    if (el) el.tagName === 'INPUT' ? el.value = '' : el.value = 'all';
+  });
+
+  const provSel = $('gf-province');
+  if (provSel) provSel.value = 'all';
+
+  const distSel = $('gf-district');
+  if (distSel) distSel.innerHTML = '<option value="all">อำเภอ</option>';
+
+  const subSel = $('gf-subdistrict');
+  if (subSel) subSel.innerHTML = '<option value="all">ตำบล</option>';
+
+  const statusSel = $('gf-status');
+  if (statusSel) statusSel.value = 'all';
+
+  updateTitleFilter();
+  updateYearFilter();  
+  applyFilters();
+}
+
+function onZoneChange() {
+  const zone = $('gf-zone')?.value;
+  const provSel = $('gf-province');
+  const distSel = $('gf-district');
+  const subSel  = $('gf-subdistrict');
+
+  // reset อำเภอ / ตำบล
+  if (distSel) distSel.innerHTML = '<option value="all">อำเภอ</option>';
+  if (subSel)  subSel.innerHTML  = '<option value="all">ตำบล</option>';
+
+  // กรองจังหวัดตามเขตที่เลือก + ต้องมีข้อมูลใน allCharters
+  if (provSel) {
+    let candidates = allCharters;
+    if (zone !== 'all') {
+      const allowedProvs = ZONE_MAP[zone] || [];
+      candidates = candidates.filter(r => allowedProvs.includes(cleanName(r?.province)));
+    }
+    const provinces = [...new Set(candidates.map(r => r?.province).filter(Boolean))]
+      .sort((a, b) => a.localeCompare(b, 'th'));
+    
+    provSel.innerHTML = '<option value="all">จังหวัด</option>' +
+      provinces.map(p => `<option value="${p}">${p}</option>`).join('');
+  }
+
+  updateTitleFilter();
+  updateYearFilter();
+  applyFilters();
+}
+
+// ── RENDER ALL ──────────────────────────────────────────────
+function renderAll() {
+  renderKPIs();
+  renderStatusChart();
+  renderZoneSummary();
+  renderTopicBars();
+  renderRecentList();
+  buildMarkers(filteredCharters);
+}
+
+// ── KPIs ──────────────────────────────────────────────────
+function renderKPIs() {
+  const data = filteredCharters;
+  tx('kpi-total', data.length.toLocaleString('th-TH'));
+  tx('kpi-provinces', new Set(data.map(r=>r?.province).filter(Boolean)).size);
+  tx('kpi-districts', new Set(data.map(r=>r?.district).filter(Boolean)).size);
+  tx('kpi-subdistricts', new Set(data.map(r=>r?.subdistrict).filter(Boolean)).size);
+}
+
+// ── STATUS CHART ──────────────────────────────────────────
+function renderStatusChart() {
+  const container = $('status-chart-container');
+  if (!container) return;
+  const data = filteredCharters;
+  const total = data.length;
+  if (!total) { container.innerHTML = '<div style="text-align:center;padding:16px;color:#aaa;font-size:12px;">ไม่พบข้อมูล</div>'; return; }
+
+  const counts = {};
+  STATUS_STAGES.forEach(s => counts[s.key] = 0);
+  let unknown = 0;
+  data.forEach(r => {
+    const st = r?.status || r?.charter_status || '';
+    const matched = STATUS_STAGES.find(s => st.includes(s.key));
+    if (matched) counts[matched.key]++;
+    else unknown++;
+  });
+
+  const hasStatus = Object.values(counts).some(v => v > 0);
+  if (!hasStatus) { counts['ประกาศใช้'] = data.length; unknown = 0; }
+
+  // อ่าน status ที่กำลัง filter อยู่
+  const activeStatus = $('gf-status')?.value || 'all';
+
+  container.innerHTML = STATUS_STAGES.map(s => {
+    const cnt = counts[s.key] || 0;
+    const pct = total > 0 ? Math.round((cnt/total)*100) : 0;
+    const isActive = activeStatus === s.key;
+    return `
+      <div onclick="filterByStatus('${s.key}')" style="
+        margin-bottom:8px;
+        padding:8px 10px;
+        border-radius:8px;
+        border:1.5px solid ${isActive ? s.color : 'transparent'};
+        background:${isActive ? s.color+'18' : '#fafaf8'};
+        cursor:${cnt > 0 ? 'pointer' : 'default'};
+        transition:all 0.15s;
+        opacity:${cnt === 0 ? '0.45' : '1'};
+      "
+      onmouseover="if(${cnt}>0) this.style.background='${s.color}18'"
+      onmouseout="this.style.background='${isActive ? s.color+'18' : '#fafaf8'}'">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <div style="width:8px;height:8px;border-radius:50%;background:${s.color};flex-shrink:0;"></div>
+            <span style="font-size:12px;color:var(--text);font-weight:${isActive?'600':'400'};">${s.label}</span>
+            ${isActive ? `<span style="font-size:9px;background:${s.color};color:white;padding:1px 6px;border-radius:10px;">กำลังดู</span>` : ''}
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span style="font-size:11px;color:var(--muted);">${cnt} ฉบับ</span>
+            <span style="font-size:12px;font-weight:600;color:${s.color};width:32px;text-align:right;">${pct}%</span>
+          </div>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" style="width:${pct}%;background:${s.color};"></div>
+        </div>
+      </div>`;
+  }).join('') + (unknown > 0 ? `
+    <div style="margin-bottom:8px;padding:8px 10px;border-radius:8px;background:#fafaf8;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div style="width:8px;height:8px;border-radius:50%;background:#ccc;flex-shrink:0;"></div>
+          <span style="font-size:12px;color:var(--text);">ไม่ระบุสถานะ</span>
+        </div>
+        <span style="font-size:11px;color:var(--muted);">${unknown} ฉบับ</span>
+      </div>
+    </div>` : '') +
+  (activeStatus !== 'all' ? `
+    <button onclick="filterByStatus('all')" style="
+      width:100%;margin-top:4px;padding:7px;border-radius:7px;
+      border:1px dashed #ccc;background:white;color:#888;
+      font-size:11px;font-family:'Kanit',sans-serif;cursor:pointer;
+      transition:all 0.15s;
+    " onmouseover="this.style.borderColor='#999'" onmouseout="this.style.borderColor='#ccc'">
+      ✕ ล้างตัวกรองสถานะ
+    </button>` : '');
+}
+
+function filterByStatus(status) {
+  // สร้าง hidden select ถ้ายังไม่มี
+  let sel = $('gf-status');
+  if (!sel) {
+    sel = document.createElement('select');
+    sel.id = 'gf-status';
+    sel.style.display = 'none';
+    document.body.appendChild(sel);
+  }
+  sel.innerHTML = `<option value="${status}">${status}</option>`;
+  sel.value = status;
+  applyFilters();
+}
+
+// ── ZONE SUMMARY ──────────────────────────────────────────
+function renderZoneSummary() {
+  const container = $('zone-summary');
+  if (!container) return;
+  const data = filteredCharters;
+  const ZONE_LABELS = { '1': 'เขต 1', '2': 'เขต 2', '3': 'เขต 3' };
+  const zoneCounts = { '1': 0, '2': 0, '3': 0, 'other': 0 };
+  data.forEach(r => {
+    const z = getZone(getProvince(r));
+    if (z) zoneCounts[z]++;
+    else zoneCounts.other++;
+  });
+  const ZONE_COLORS = { '1': '#1D9E75', '2': '#378ADD', '3': '#EF9F27' };
+  const total = data.length || 1;
+  container.innerHTML = Object.entries(zoneCounts).filter(([k])=>k!=='other').map(([z, cnt]) => `
+    <div style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:7px;border:1px solid var(--border);margin-bottom:7px;background:#fafaf8;">
+      <div style="width:36px;height:36px;border-radius:8px;background:${ZONE_COLORS[z]}20;display:flex;align-items:center;justify-content:center;">
+        <span style="font-size:12px;font-weight:700;color:${ZONE_COLORS[z]};">${z}</span>
+      </div>
+      <div style="flex:1;">
+        <div style="font-size:12px;font-weight:500;color:var(--text);">${ZONE_LABELS[z]}</div>
+        <div class="progress-bar" style="margin-top:4px;">
+          <div class="progress-fill" style="width:${Math.round(cnt/total*100)}%;background:${ZONE_COLORS[z]};"></div>
+        </div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:15px;font-weight:700;color:${ZONE_COLORS[z]};">${cnt}</div>
+        <div style="font-size:10px;color:var(--muted);">ฉบับ</div>
+      </div>
+    </div>
+  `).join('') + (zoneCounts.other > 0 ? `<div style="font-size:11px;color:var(--muted);padding:4px 8px;">นอกเขต/ไม่ระบุ: ${zoneCounts.other} ฉบับ</div>` : '');
+}
+
+// ── TOPIC BARS ──────────────────────────────────────────
+function renderTopicBars() {
+  const container = $('topic-bars-container');
+  if (!container) return;
+  const data = filteredCharters;
+  const total = data.length;
+  if (!total) { container.innerHTML = '<div style="text-align:center;padding:16px;color:#aaa;font-size:12px;">ไม่พบข้อมูล</div>'; return; }
+
+  const titleCounts = {};
+  data.forEach(r => {
+    const t = (r?.title || '').trim();
+    if (t) titleCounts[t] = (titleCounts[t]||0)+1;
+  });
+
+  const COLORS = ['#1D9E75','#378ADD','#EF9F27','#D4537E','#5DCAA5','#7B61FF','#F97316','#14B8A6','#9B59B6','#E67E22'];
+ const sorted = Object.entries(titleCounts).sort((a,b)=>b[1]-a[1]).slice(0, 20);
+
+  container.innerHTML = sorted.map(([title, cnt], i) => {
+    const pct = Math.round((cnt/total)*100);
+    const color = COLORS[i % COLORS.length];
+    return `
+      <div style="cursor:pointer;margin-bottom:10px;" onclick="filterByTitle('${title.replace(/'/g,"\\'")}')">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:4px;">
+          <div style="font-size:12px;color:#333;line-height:1.4;flex:1;">${title}</div>
+          <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+            <span style="font-size:11px;color:#aaa;">${cnt} ฉบับ</span>
+            <span style="font-size:12px;font-weight:600;color:${color};min-width:32px;text-align:right;">${pct}%</span>
+          </div>
+        </div>
+        <div style="height:6px;background:#f0f0ec;border-radius:3px;overflow:hidden;">
+          <div style="width:${pct}%;height:100%;background:${color};border-radius:3px;transition:width 0.6s ease;"></div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function filterByTitle(title) {
+  const s = $('gf-title');
+  if (s) { s.value = title; applyFilters(); }
+}
+
+// ── RECENT LIST ──────────────────────────────────────────
+function renderRecentList() {
+  const container = $('recent-list');
+  if (!container) return;
+  const data = filteredCharters;
+  const total = data.length;
+  const sorted = [...data].sort((a,b) => {
+    const ya = thYear(a?.publish_date) || 0;
+    const yb = thYear(b?.publish_date) || 0;
+    return yb - ya;
+  });
+  const tp = Math.ceil(total/PAGE);
+  const start = (recentPage-1)*PAGE;
+  const pageData = sorted.slice(start, start+PAGE);
+
+  const sub = $('recent-sub');
+  if (sub) sub.textContent = `${total.toLocaleString('th-TH')} รายการตามตัวกรองที่เลือก`;
+
+  if (!pageData.length) {
+    container.innerHTML = '<div style="text-align:center;padding:20px;color:#aaa;font-size:12px;">🔍 ไม่พบข้อมูล</div>';
+    $('recent-pager').innerHTML = '';
+    return;
+  }
+
+  container.innerHTML = pageData.map(r => {
+    const name = r?.charter_name || r?.title || '(ไม่มีชื่อ)';
+    const prov = r?.province || '—';
+    const dist = r?.district || '';
+    const sub_ = r?.subdistrict || '';
+    const year = thYear(r?.publish_date);
+    const imgUrl = r?.image_url;
+    const pdfUrl = r?.pdf_url;
+    const loc = [prov, dist, sub_].filter(Boolean).join(' · ');
+    return `
+      <div style="display:flex;gap:10px;padding:10px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;background:#fafaf8;">
+        ${imgUrl
+          ? `<img src="${imgUrl}" style="width:44px;height:54px;object-fit:cover;border-radius:6px;border:1px solid var(--border);flex-shrink:0;" onerror="this.style.display='none'">`
+          : `<div style="width:44px;height:54px;background:#f0f0ec;border-radius:6px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">📄</div>`
+        }
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:12px;font-weight:500;color:var(--text);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${name}">${name}</div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:5px;">${loc}${year ? ' · '+year+' พ.ศ.' : ''}</div>
+          ${pdfUrl ? `<a href="${pdfUrl}" target="_blank" class="btn-sm green" style="font-size:10px;padding:4px 8px;">📄 ดู PDF</a>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+
+  // Pager
+  const pager = $('recent-pager');
+  if (tp > 1) {
+    pager.innerHTML = `
+      <button class="btn-sm" ${recentPage<=1?'disabled':''} onclick="recentPage--;renderRecentList()">‹</button>
+      <span style="font-size:11px;color:var(--muted);padding:0 6px;">${recentPage}/${tp}</span>
+      <button class="btn-sm" ${recentPage>=tp?'disabled':''} onclick="recentPage++;renderRecentList()">›</button>`;
+  } else {
+    pager.innerHTML = '';
+  }
+}
+
+function initMainMap() {
+  const el = $('leaflet-map');
+  if (!el || mainMap) return;
+  mainMap = L.map('leaflet-map', { center:[17.8,99.8], zoom:7, scrollWheelZoom:true });
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution:'© OpenStreetMap', maxZoom:18 }).addTo(mainMap);
+  mainLayer = L.layerGroup().addTo(mainMap);
+
+  // ✅ เปลี่ยน groupBy ตาม zoom level อัตโนมัติ
+  mainMap.on('zoomend', () => buildMarkers(filteredCharters));
+
+  const leg = L.control({ position:'bottomright' });
+  leg.onAdd = () => {
+    const d = L.DomUtil.create('div');
+    d.style.cssText = 'background:white;padding:8px 12px;border-radius:8px;font-size:11px;color:#444;line-height:1.9;border:1px solid rgba(0,0,0,0.1);';
+    d.innerHTML = `<b style="font-size:12px;">สัญลักษณ์</b><br>
+                    <span style="display:inline-flex;align-items:center;gap:4px;margin:2px 0;">
+                    <span style="width:12px;height:12px;background:#1D9E75;border-radius:50%;border:2px solid white;"></span>
+                    ธรรมนูญสุขภาพ
+              </span>`;
+    return d;
+  };
+  leg.addTo(mainMap);
+}
+
+function buildMarkers(data) {
+  if (!mainMap || !mainLayer) return;
+  mainLayer.clearLayers();
+  if (!data?.length) return;
+
+  const zoom = mainMap.getZoom();
+
+  // ✅ กำหนด groupBy ตาม zoom level
+  let groupBy;
+  if (zoom >= 11) groupBy = 'subdistrict';
+  else if (zoom >= 9) groupBy = 'district';
+  else groupBy = 'province';
+
+  // อัปเดต legend label
+  const zoomLabel = $('map-zoom-label');
+  if (zoomLabel) {
+    zoomLabel.textContent = groupBy === 'subdistrict' ? 'ตำบล' : groupBy === 'district' ? 'อำเภอ' : 'จังหวัด';
+  }
+
+  // ✅ grouping
+  const groups = {};
+  data.forEach(r => {
+    const prov = cleanName(r?.province);
+    if (!prov || !PROVINCE_COORDS[prov]) return;
+
+    let key, label, lat, lng;
+
+    if (groupBy === 'province') {
+      key = prov;
+    } else if (groupBy === 'district') {
+      key = `${r?.district}||${prov}`;
+    } else {
+      key = `${r?.subdistrict}||${r?.district}||${prov}`;
+    }
+
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(r);
+  });
+
+  // ✅ สีตาม groupBy
+  const COLOR = groupBy === 'province' ? '#1D9E75' : groupBy === 'district' ? '#378ADD' : '#EF9F27';
+
+  Object.entries(groups).forEach(([key, rows]) => {
+    const r0 = rows[0];
+    const prov = cleanName(r0?.province);
+    const cnt = rows.length;
+
+    // คำนวณ coordinates
+    let coords;
+    if (groupBy === 'province') {
+      coords = PROVINCE_COORDS[prov];
+      label = prov;
+    } else if (groupBy === 'district') {
+      coords = mockCoords(prov, r0?.district, null);
+      label = `${r0?.district} (${prov})`;
+    } else {
+      coords = mockCoords(prov, r0?.district, r0?.subdistrict);
+      label = `ต.${r0?.subdistrict} อ.${r0?.district}`;
+    }
+
+    if (!coords) return;
+
+    // ✅ ขนาด marker ตามจำนวน
+    const size = groupBy === 'province'
+      ? Math.max(28, Math.min(52, 20 + cnt * 1.5))
+      : groupBy === 'district'
+      ? Math.max(22, Math.min(40, 16 + cnt * 2))
+      : 18;
+
+    const icon = L.divIcon({
+      className: '',
+      html: `
+        <div style="
+          width:${size}px;height:${size}px;
+          background:${COLOR};
+          border:2.5px solid white;
+          border-radius:50%;
+          box-shadow:0 2px 8px rgba(0,0,0,0.25);
+          cursor:pointer;
+          display:flex;align-items:center;justify-content:center;
+          color:white;font-size:${size > 28 ? 11 : 9}px;font-weight:600;
+          font-family:'Kanit',sans-serif;
+        ">${cnt > 1 ? cnt : ''}</div>`,
+      iconSize: [size, size],
+      iconAnchor: [size/2, size/2],
+    });
+
+    const m = L.marker(coords, { icon }).addTo(mainLayer);
+    m.bindTooltip(`
+      <b>${label}</b><br>
+      <span style="font-size:11px;color:#555;">ธรรมนูญสุขภาพ ${cnt} ฉบับ</span>
+    `, { direction:'top', offset:[0,-size/2-4], opacity:0.95 });
+    m.on('click', () => openMapModal(label, rows));
+  });
+}
+
+function buildMarkers(data) {
+  if (!mainMap || !mainLayer) return;
+  mainLayer.clearLayers();
+  if (!data?.length) return;
+
+  const zoom = mainMap.getZoom();
+
+  // ✅ กำหนด groupBy ตาม zoom level
+  let groupBy;
+  if (zoom >= 11) groupBy = 'subdistrict';
+  else if (zoom >= 9) groupBy = 'district';
+  else groupBy = 'province';
+
+  // อัปเดต legend label
+  const zoomLabel = $('map-zoom-label');
+  if (zoomLabel) {
+    zoomLabel.textContent = groupBy === 'subdistrict' ? 'ตำบล' : groupBy === 'district' ? 'อำเภอ' : 'จังหวัด';
+  }
+
+  // ✅ grouping
+  const groups = {};
+  data.forEach(r => {
+    const prov = cleanName(r?.province);
+    if (!prov || !PROVINCE_COORDS[prov]) return;
+
+    let key, label, lat, lng;
+
+    if (groupBy === 'province') {
+      key = prov;
+    } else if (groupBy === 'district') {
+      key = `${r?.district}||${prov}`;
+    } else {
+      key = `${r?.subdistrict}||${r?.district}||${prov}`;
+    }
+
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(r);
+  });
+
+  // ✅ สีตาม groupBy
+  const COLOR = groupBy === 'province' ? '#1D9E75' : groupBy === 'district' ? '#378ADD' : '#EF9F27';
+
+  Object.entries(groups).forEach(([key, rows]) => {
+    const r0 = rows[0];
+    const prov = cleanName(r0?.province);
+    const cnt = rows.length;
+
+    // คำนวณ coordinates
+    let coords;
+    if (groupBy === 'province') {
+      coords = PROVINCE_COORDS[prov];
+      label = prov;
+    } else if (groupBy === 'district') {
+      coords = mockCoords(prov, r0?.district, null);
+      label = `${r0?.district} (${prov})`;
+    } else {
+      coords = mockCoords(prov, r0?.district, r0?.subdistrict);
+      label = `ต.${r0?.subdistrict} อ.${r0?.district}`;
+    }
+
+    if (!coords) return;
+
+    // ✅ ขนาด marker ตามจำนวน
+    const size = groupBy === 'province'
+      ? Math.max(28, Math.min(52, 20 + cnt * 1.5))
+      : groupBy === 'district'
+      ? Math.max(22, Math.min(40, 16 + cnt * 2))
+      : 18;
+
+    // ✅ ใหม่ - แสดงสัญลักษณ์ใน marker
+    const icon = L.divIcon({
+        className: '',
+        html: `
+              <div style="
+                display:flex;
+                flex-direction:${groupBy === 'province' ? 'column' : 'row'};
+                align-items:center;
+                justify-content:center;
+                gap:2px;
+                cursor:pointer;
+              ">
+     
+              <div style="
+                width:${groupBy === 'province' ? 32 : 24}px;
+                height:${groupBy === 'province' ? 32 : 24}px;
+                background:${COLOR};
+                border:2.5px solid white;
+                border-radius:50%;
+                box-shadow:0 2px 8px rgba(0,0,0,0.25);
+                display:flex;
+                align-items:center;
+                justify-content:center;
+                font-size:14px;
+              ">📋</div>
+
+              ${groupBy === 'province' ? 
+              `<span style="font-size:10px;color:#333;font-weight:500;white-space:nowrap;"></span>` 
+              : ''}
+              </div>`,
+            iconSize: groupBy === 'province' ? [120, 50] : [30, 30],
+            iconAnchor: groupBy === 'province' ? [60, 25] : [15, 15],
+          });
+    const m = L.marker(coords, { icon }).addTo(mainLayer);
+    m.bindTooltip(`
+      <b>${label}</b><br>
+      <span style="font-size:11px;color:#555;">ธรรมนูญสุขภาพ: ${cnt} ฉบับ</span>
+    `, { direction:'top', offset:[0,-size/2-4], opacity:0.95 });
+    m.on('click', () => openMapModal(label, rows));
+  });
+}
+
+// ── TOGGLE HIA SUBMENU ──────────────────────────────────────────
+function toggleHiaMenu(e) {
+  e.stopPropagation();
+  e.preventDefault(); // ✅ ป้องกันการลิงก์
+  
+  const submenu = document.getElementById('hia-submenu');
+  const toggle = e.currentTarget;
+  
+  if (submenu) {
+    submenu.classList.toggle('show');
+    toggle.classList.toggle('active');
+  }
+}
+
+// ปิดเมนูย่อยเมื่อคลิกที่อื่น
+document.addEventListener('click', (e) => {
+  const submenu = document.getElementById('hia-submenu');
+  const toggle = document.querySelector('.nav-dropdown-toggle');
+  
+  if (submenu && !e.target.closest('.nav-dropdown')) {
+    submenu.classList.remove('show');
+    if (toggle) toggle.classList.remove('active');
+  }
+});
+
+function bindMapFilters() {
+  ['mf-province','mf-district','mf-subdistrict'].forEach(id => {
+    $(id)?.addEventListener('change', () => buildMarkers(filteredCharters));
+  });
+  $('mf-reset-btn')?.addEventListener('click', () => {
+    $('mf-province').value = 'all';
+    $('mf-district').value = 'all';
+    $('mf-subdistrict').value = 'all';
+    buildMarkers(filteredCharters);
+    mainMap?.setView([17.8,99.8],7);
+  });
+}
+
+// ── MAP MODAL ──────────────────────────────────────────────
+function openMapModal(groupName, rows) {
+  modalAllRows = rows || [];
+  const ov = $('map-modal-ov');
+  if (!ov) return;
+  $('modal-title').textContent = '📍 ' + groupName;
+  $('modal-count').textContent = modalAllRows.length;
+  $('modal-search').value = '';
+  $('modal-showing').textContent = modalAllRows.length;
+
+  renderModalRows(modalAllRows);
+  ov.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+  setTimeout(() => $('modal-search')?.focus(), 100);
+}
+
+function renderModalRows(items) {
+  const container = $('modal-content');
+  $('modal-showing').textContent = items.length;
+  if (!items.length) {
+    container.innerHTML = '<div style="text-align:center;padding:32px;color:#aaa;">🔍 ไม่พบข้อมูล</div>';
+    return;
+  }
+ 
+  // ตรวจสอบว่า login หรือยัง
+  let loggedIn = false;
+  try {
+    const u = JSON.parse(localStorage.getItem('user')||'null');
+    if (u && u.loggedIn && (new Date()-new Date(u.loginTime))/(1000*60*60) < 24) loggedIn = true;
+  } catch(e) {}
+ 
+  container.innerHTML = items.map(r => {
+    const name = r?.charter_name || r?.title || '(ไม่มีชื่อ)';
+    const prov = r?.province || '—';
+    const dist = r?.district || '—';
+    const sub  = r?.subdistrict || '';
+    const title = r?.title || '—';
+    const leader = r?.leader || '—';
+    const academic = r?.academic_supporter || '—';
+    const phone = r?.phone || r?.tel || r?.contact_phone || '—';
+    const pubDate = r?.publish_date;
+    const imgUrl = r?.image_url;
+    const pdfUrl = r?.pdf_url;
+ 
+    let pdfFull = null;
+    if (pdfUrl) {
+      if (pdfUrl.startsWith('http')) pdfFull = pdfUrl;
+      else {
+        const clean = pdfUrl.startsWith('/') ? pdfUrl.slice(1) : pdfUrl;
+        pdfFull = `${SUPABASE_URL}/storage/v1/object/public/charter-pdfs/${clean}`;
+      }
+    }
+ 
+    return `
+    <div class="charter-card">
+      ${imgUrl
+        ? `<img src="${imgUrl}" class="charter-card-img" onerror="this.outerHTML='<div class=charter-card-img style=width:56px;height:70px;>📄</div>'">`
+        : `<div class="charter-card-img" style="width:56px;height:70px;">📄</div>`
+      }
+      <div class="charter-card-body">
+        <div class="charter-card-title">${name}</div>
+        <div class="charter-card-meta">จังหวัด: ${prov} </div>
+        <div class="charter-card-meta">อำเภอ: ${dist}</div>
+        <div class="charter-card-meta">ตำบล: ${sub}</div>
+        <div class="charter-card-meta">วันที่ประกาศ: ${thDate(pubDate)}</div>
+        <div class="charter-card-meta">ประเด็น: ${title || '—'}</div>
+        <div class="charter-card-meta" style="color:#1D9E75;">แกนนำ: ${leader}</div>
+        <div class="charter-card-meta" style="color:#378ADD;">นักวิชาการ: ${academic}</div>
+        ${phone !== '—' ? `<div class="charter-card-meta">เบอร์โทร: ${phone}</div>` : ''}
+        <div class="charter-card-actions">
+          ${pdfFull ? `<a href="${pdfFull}" target="_blank" class="btn-sm green">📄 ดู PDF</a>` : ''}
+          ${loggedIn && r?.id ? `
+            <button class="btn-edit-modal" onclick="openEditRecord(${r.id})">✏️ แก้ไข</button>
+            <button class="btn-del-modal" onclick="openDelRecord(${r.id},'${(name).replace(/'/g,"\\'")}')">🗑️ ลบ</button>
+          ` : ''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filterModalRows() {
+  const q     = ($('modal-search')?.value || '').trim().toLowerCase();
+
+  let filtered = modalAllRows;
+  if (q) {
+    filtered = filtered.filter(r => {
+      const s = [(r?.charter_name||''),(r?.province||''),(r?.district||''),(r?.subdistrict||''),(r?.leader||''),(r?.academic_supporter||'')].join(' ').toLowerCase();
+      return s.includes(q);
+    });
+  }
+  $('modal-count').textContent = filtered.length;
+  renderModalRows(filtered);
+}
+
+let pendingDelRecordId = null;
+ 
+async function openEditRecord(id) {
+  window.location.href = `edit_health.html?id=${id}`;
+}
+ 
+function closeEditRecord() {
+  document.getElementById('edit-record-ov').classList.remove('show');
+  document.body.style.overflow = '';
+}
+ 
+async function saveEditRecord() {
+  const id = document.getElementById('edit-record-id').value;
+  const charter_name = document.getElementById('edit-charter-name').value.trim();
+  const province = document.getElementById('edit-province').value;
+  const district = document.getElementById('edit-district').value.trim();
+  const subdistrict = document.getElementById('edit-subdistrict').value.trim();
+  const title = document.getElementById('edit-title').value;
+  const publish_date = document.getElementById('edit-publish-date').value.trim();
+  const leader = document.getElementById('edit-leader').value.trim();
+  const academic_supporter = document.getElementById('edit-academic').value.trim();
+  const pdf_url = document.getElementById('edit-pdf-url').value.trim();
+ 
+  if (!charter_name || !province) {
+    showToast('กรุณากรอกชื่อธรรมนูญและจังหวัด','','error'); return;
+  }
+ 
+  const payload = {
+    charter_name, province, district: district||null,
+    subdistrict: subdistrict||null, title: title||null,
+    publish_date: publish_date||null, leader: leader||null,
+    academic_supporter: academic_supporter||null, pdf_url: pdf_url||null
+  };
+ 
+  const { error } = await db.from('data_charter').update(payload).eq('id', id);
+  if (error) { showToast('อัปเดตไม่สำเร็จ: '+error.message,'','error'); return; }
+ 
+  showToast('✅ อัปเดตข้อมูลเรียบร้อย','','success');
+  closeEditRecord();
+ 
+  // รีโหลดข้อมูลและอัปเดต modal
+  await loadData();
+  // อัปเดต modalAllRows
+  const updatedRows = modalAllRows.map(r => r.id == id ? {...r, ...payload} : r);
+  modalAllRows = updatedRows;
+  renderModalRows(updatedRows);
+}
+
+function openDelRecord(id, name) {
+  pendingDelRecordId = id;
+  document.getElementById('del-record-msg').textContent = `คุณต้องการลบ "${name}" ใช่หรือไม่?`;
+  document.getElementById('del-record-ov').style.display = 'flex';
+}
+ 
+function closeDelRecord() {
+  document.getElementById('del-record-ov').style.display = 'none';
+  pendingDelRecordId = null;
+}
+ 
+async function confirmDelRecord() {
+  if (!pendingDelRecordId) return;
+
+  const record = allCharters.find(r => r.id == pendingDelRecordId);
+
+  // ── ฟังก์ชันช่วยดึง storage path จาก public URL ──
+  function getStoragePath(url, bucketName) {
+    if (!url) return null;
+    try {
+      // URL รูปแบบ: .../storage/v1/object/public/BUCKET_NAME/PATH
+      const marker = `/object/public/${bucketName}/`;
+      const idx = url.indexOf(marker);
+      if (idx !== -1) return decodeURIComponent(url.slice(idx + marker.length));
+      // fallback: เอาแค่ชื่อไฟล์
+      return decodeURIComponent(url.split('/').pop());
+    } catch { return url.split('/').pop(); }
+  }
+
+  // ลบ PDF
+  if (record?.pdf_url) {
+    try {
+      const path = getStoragePath(record.pdf_url, 'charter-pdfs');
+      if (path) {
+        const { error } = await db.storage.from('charter-pdfs').remove([path]);
+        if (error) console.warn('ลบ PDF ไม่สำเร็จ:', error.message);
+        else console.log('✅ ลบ PDF แล้ว:', path);
+      }
+    } catch(e) { console.warn('ลบ PDF error:', e); }
+  }
+
+  // ลบรูปภาพ
+  if (record?.image_url) {
+    try {
+      const path = getStoragePath(record.image_url, 'charter-images');
+      if (path) {
+        const { error } = await db.storage.from('charter-images').remove([path]);
+        if (error) console.warn('ลบรูปภาพไม่สำเร็จ:', error.message);
+        else console.log('✅ ลบรูปภาพแล้ว:', path);
+      }
+    } catch(e) { console.warn('ลบรูปภาพ error:', e); }
+  }
+
+  // ลบ record จาก database
+  const { error } = await db.from('data_charter').delete().eq('id', pendingDelRecordId);
+  if (error) {
+    showToast('ลบไม่สำเร็จ: ' + error.message, '', 'error');
+    return;
+  }
+
+  showToast('🗑️ ลบข้อมูลเรียบร้อย', '', 'success');
+  closeDelRecord();
+  closeMapModal();
+
+  await loadData();
+  renderAll();
+}
+
+function closeMapModal() {
+  const ov = $('map-modal-ov');
+  if (ov) ov.style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+// ── AUTH ──────────────────────────────────────────────────
+function updateAuthUI() {
+  const out = $('auth-logged-out'), inn = $('auth-logged-in');
+  const addBtn = $('add-btn'), fab = $('floating-add-btn');
+  if (!out || !inn) return;
+  try {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      const hoursDiff = (new Date() - new Date(user.loginTime)) / (1000*60*60);
+      if (hoursDiff < 24 && user.loggedIn) {
+        out.style.display = 'none';
+        inn.style.display = 'flex';
+        const n = $('user-name'), ro = $('user-role'), av = $('user-avatar');
+        if (n) n.textContent = user.name || user.username || 'ผู้ใช้';
+        if (ro) ro.textContent = user.role || 'user';
+        if (av) {
+          av.textContent = (user.name || user.username || 'U').charAt(0).toUpperCase();
+          av.style.background = user.role === 'admin' ? 'linear-gradient(135deg,#EF9F27,#B5721C)' : 'linear-gradient(135deg,#1D9E75,#0F6E56)';
+        }
+        if (addBtn) addBtn.style.display = 'flex';
+        if (fab) fab.style.display = 'flex';
+        return;
+      }
+    }
+    out.style.display = 'block';
+    inn.style.display = 'none';
+    if (addBtn) addBtn.style.display = 'none';
+    if (fab) fab.style.display = 'none';
+  } catch(e) {
+    localStorage.removeItem('user');
+    out.style.display = 'block'; inn.style.display = 'none';
+  }
+}
+
+function handleLogout() { $('confirm-modal').style.display = 'flex'; }
+
+function confirmLogout() {
+  $('confirm-modal').style.display = 'none';
+  localStorage.removeItem('user');
+  if (typeof supabaseClient !== 'undefined') supabaseClient?.auth?.signOut?.().catch(()=>{});
+  updateAuthUI();
+  showToast('ออกจากระบบเรียบร้อย','','logout');
+  setTimeout(() => window.location.reload(), 1200);
+}
+
+function handleAddClick() { window.location.href = 'add_health.html'; }
+
+function showToast(title, msg, type='success', dur=3000) {
+  const toast = $('toast-notification');
+  if (!toast) return;
+  const colors = { success:'#1D9E75', error:'#E04031', info:'#378ADD', logout:'#EF9F27' };
+  const color = colors[type] || colors.success;
+  toast.style.borderLeftColor = color;
+  toast.innerHTML = `<div style="display:flex;align-items:center;gap:10px;"><div style="font-size:20px;">${type==='logout'?'👋':type==='error'?'✕':'✓'}</div><div><div style="font-size:13px;font-weight:500;color:#1a1a1a;">${title}</div>${msg?`<div style="font-size:12px;color:#666;">${msg}</div>`:''}</div></div>`;
+  toast.className = 'toast-enter';
+  toast.style.display = 'block';
+  setTimeout(() => {
+    toast.className = 'toast-exit';
+    setTimeout(() => { toast.style.display = 'none'; toast.className = ''; }, 300);
+  }, dur);
+}
+
+// ── EVENTS ──────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', async () => {
+  updateAuthUI();
+  initMainMap();
+  await loadData();
+  bindMapFilters();
+
+  // Filter strip events
+  const debouncedFilter = debounce(applyFilters, 300);
+  $('gf-search')?.addEventListener('input', debouncedFilter);
+
+  // Cascading dropdowns
+  $('gf-province')?.addEventListener('change', onProvinceChange);
+  $('gf-district')?.addEventListener('change', onDistrictChange);
+  $('gf-subdistrict')?.addEventListener('change', () => {
+  updateTitleFilter();
+  updateYearFilter();
+  applyFilters();
+});
+
+  // ตัวกรองอื่นๆ ที่ไม่ต้อง cascade
+  $('gf-zone')?.addEventListener('change', onZoneChange);
+  ['gf-title','gf-type','gf-year'].forEach(id => {
+    $(id)?.addEventListener('change', applyFilters);
+  });
+
+  // Modal events
+  $('modal-search')?.addEventListener('input', debounce(filterModalRows, 200));
+  $('map-modal-ov')?.addEventListener('click', e => { if (e.target === $('map-modal-ov')) closeMapModal(); });
+
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMapModal(); });
+  window.addEventListener('storage', e => { if (e.key === 'user') updateAuthUI(); });
+});
+
+window.addEventListener('scroll', () => {
+  const nav = document.querySelector('.topnav');
+  if (window.scrollY > 10) {
+    nav.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
+    nav.style.borderBottomColor = 'transparent';
+  } else {
+    nav.style.boxShadow = '0 2px 4px rgba(0,0,0,0.05)';
+    nav.style.borderBottomColor = 'var(--border)'; // หรือค่าสีเดิม
+  }
+});
+
+function toggleMobileMenu() {
+  const menu = document.getElementById('topnav-links');
+  const btn  = document.getElementById('mobile-toggle');
+  const right = document.querySelector('.topnav-right');
+
+  if (menu && btn) {
+    menu.classList.toggle('active');
+    btn.classList.toggle('active');
+    // ใช้ class แทน style เพื่อชนะ !important ใน CSS
+    if (right) right.classList.toggle('menu-open', menu.classList.contains('active'));
+  }
+}
+
+// ✅ ปรับปรุง toggleHiaMenu ให้รองรับมือถือ (ปิดเมนูหลักเมื่อคลิกรายการย่อย)
+function toggleHiaMenu(e) {
+  e.stopPropagation();
+  e.preventDefault();
+  
+  const submenu = document.getElementById('hia-submenu');
+  const toggle = e.currentTarget;
+  
+  if (submenu) {
+    submenu.classList.toggle('show');
+    if (toggle) toggle.classList.toggle('active');
+  }
+  
+  // ถ้าเป็นมือถือ ให้เลื่อนไปเห็นเมนูย่อย
+  if (window.innerWidth <= 768 && submenu.classList.contains('show')) {
+    submenu.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+}
+
+// ✅ ปิดเมนูเมื่อคลิกที่อื่น (รวมถึงเมื่อคลิกลิงก์)
+document.addEventListener('click', (e) => {
+  const submenu = document.getElementById('hia-submenu');
+  const toggle = document.querySelector('.nav-dropdown-toggle');
+  const mobileMenu = document.getElementById('topnav-links');
+  const mobileBtn = document.getElementById('mobile-toggle');
+  
+  // ปิด submenu HIA
+  if (submenu && !e.target.closest('.nav-dropdown')) {
+    submenu.classList.remove('show');
+    if (toggle) toggle.classList.remove('active');
+  }
+  
+  // ปิดเมนูมือถือเมื่อคลิกลิงก์ (เพื่อให้หน้าเปลี่ยนและเมนูหุบ)
+  if (mobileMenu && mobileMenu.classList.contains('active') && 
+      e.target.closest('.nav-link') && !e.target.closest('.nav-dropdown-toggle')) {
+    mobileMenu.classList.remove('active');
+    if (mobileBtn) mobileBtn.classList.remove('active');
+  }
+});
+
+// ✅ Toggle User Menu on Mobile (แบบเลื่อนตามหน้าจอ)
+function toggleUserMenu() {
+  if (window.innerWidth <= 768) {
+    const menu = document.createElement('div');
+    menu.id = 'mobile-user-menu';
+    
+    // ✅ แก้ไขตรงนี้: เปลี่ยน position เป็น 'fixed' และเพิ่ม z-index สูงๆ
+    menu.style.cssText = `
+      position: fixed;              /* ✅ เปลี่ยนจาก absolute เป็น fixed */
+      top: 60px;                    /* ✅ ปรับระยะจากด้านบนให้พอดีกับ topnav */
+      right: 16px;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 0;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      z-index: 9999;                /* ✅ เพิ่มค่าให้สูงกว่าองค์ประกอบอื่น */
+      min-width: 140px;
+      animation: slideDown 0.2s ease; /* ✅ เพิ่มอนิเมชั่นให้นุ่มนวล */
+    `;
+    
+    menu.innerHTML = `
+      <div style="padding: 8px 16px; font-size: 13px; font-weight: 500; color: var(--text);">
+        ${document.getElementById('user-name')?.textContent || 'ผู้ใช้'}
+      </div>
+      <div style="padding: 8px 16px; font-size: 11px; color: var(--muted); border-top: 1px solid var(--border);">
+        ${document.getElementById('user-role')?.textContent || 'user'}
+      </div>
+      <button onclick="handleLogout(); document.getElementById('mobile-user-menu')?.remove();" 
+        style="width: 100%; padding: 8px 16px; text-align: left; font-size: 13px; color: var(--red); background: none; border: none; cursor: pointer;">
+        🚪 ออกจากระบบ
+      </button>
+    `;
+    
+    // ลบเมนูเก่าถ้ามี
+    document.getElementById('mobile-user-menu')?.remove();
+    document.body.appendChild(menu);
+    
+    // ปิดเมื่อคลิกที่อื่น
+    setTimeout(() => {
+      document.addEventListener('click', function closeMenu(e) {
+        if (!e.target.closest('#mobile-user-menu') && !e.target.closest('#user-avatar')) {
+          menu.remove();
+          document.removeEventListener('click', closeMenu);
+        }
+      });
+    }, 100);
+  }
+}
+
+// ✅ เพิ่ม onclick ที่ avatar
+document.addEventListener('DOMContentLoaded', () => {
+  const avatar = document.getElementById('user-avatar');
+  if (avatar) {
+    avatar.style.cursor = 'pointer';
+    avatar.onclick = toggleUserMenu;
+  }
+});
+
+window.addEventListener('resize', () => {
+  if (window.innerWidth > 768) {
+    const menu  = document.getElementById('topnav-links');
+    const btn   = document.getElementById('mobile-toggle');
+    const right = document.querySelector('.topnav-right');
+    if (menu)  menu.classList.remove('active');
+    if (btn)   btn.classList.remove('active');
+    if (right) right.classList.remove('menu-open');
+  }
+});
+</script>
+</body>
+</html>
