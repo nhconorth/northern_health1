@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HIA</title>
+  <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+  <link rel="stylesheet" href="css/hia.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ── TOP NAV ── -->
+  <nav class="topnav">
+    <div class="topnav-logo" onclick="window.location.href='index.html'">🌿 Data Area North</div>
+
+    <button class="mobile-toggle" id="mobile-toggle" aria-label="เปิดเมนู" onclick="toggleMobileMenu()">
+      <span class="hamburger-line"></span>
+      <span class="hamburger-line"></span>
+      <span class="hamburger-line"></span>
+    </button>
+
+    <div class="topnav-links" id="topnav-links">
+      <a class="nav-link" onclick="window.location.href='index.html'">ธรรมนูญสุขภาพ</a>
+      <a class="nav-link" href="https://infocenter.nationalhealth.or.th/ข้อมูลผู้ป่วยที่มีการว/" target="_blank">มาตรา 12</a>
+      <a class="nav-link" onclick="window.location.href='4pw.html'">4PW</a>
+
+      <div class="nav-dropdown">
+        <div class="nav-link nav-dropdown-toggle active" onclick="toggleHiaMenu(event)">
+          HIA <span class="arrow">▼</span>
+        </div>
+        <ul class="nav-submenu" id="hia-submenu">
+          <li><a class="nav-link" href="https://kokdata-newversion.vercel.app/" target="_blank">📊 เว็บไซต์ตรวจคุณภาพน้ำ</a></li>
+          <li><a class="nav-link" onclick="window.location.href='hia.html'">📋 รายงาน HIA</a></li>
+        </ul>
+      </div>
+
+      <a class="nav-link" onclick="window.location.href='network.html'">ฐานข้อมูลเครือข่าย</a>
+    </div>
+
+    <div class="topnav-right">
+      <div id="auth-logged-out">
+        <button onclick="window.location.href='login.html'"
+          style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:white;border:1px solid var(--border);border-radius:8px;color:#1a1a1a;font-size:12px;font-weight:500;cursor:pointer;">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path d="M7 7C8.65685 7 10 5.65685 10 4C10 2.34315 8.65685 1 7 1C5.34315 1 4 2.34315 4 4C4 5.65685 5.34315 7 7 7Z" stroke="currentColor" stroke-width="1.2"/>
+            <path d="M1 13C1 10.2386 3.68629 8 7 8C10.3137 8 13 10.2386 13 13" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+          </svg>
+          เข้าสู่ระบบ
+        </button>
+      </div>
+      <div id="auth-logged-in" style="display:none;align-items:center;gap:8px;">
+        <div id="user-avatar"
+          style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#1D9E75,#0F6E56);color:white;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500;flex-shrink:0;cursor:pointer;">
+          U
+        </div>
+        <div style="min-width:0;">
+          <div id="user-name" style="font-size:12px;font-weight:500;color:#1a1a1a;white-space:nowrap;">ผู้ใช้</div>
+          <div id="user-role" style="font-size:10px;color:#888;">user</div>
+        </div>
+        <button onclick="handleLogout()"
+          style="width:28px;height:28px;border:none;background:#f5f3f0;border-radius:50%;color:#e41515;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+          <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+            <path d="M8.5 3.5L12 7L8.5 10.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M12 7H5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+            <path d="M3 12V2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ── MAIN ── -->
+  <div class="main">
+    <div class="hia-container">
+
+      <div class="hia-header">
+        <div class="hia-title">ฐานข้อมูล HIA</div>
+      </div>
+
+      <!-- Stats Cards -->
+      <div class="hia-stats" id="hia-stats" style="display:none;">
+        <div class="hia-stat-card">
+          <div class="hia-stat-icon">📄</div>
+          <div>
+            <div class="hia-stat-val" id="stat-total">0</div>
+            <div class="hia-stat-label">รายงานทั้งหมด</div>
+          </div>
+        </div>
+        <div class="hia-stat-card">
+          <div>
+            <div class="hia-stat-val" id="stat-provinces">0</div>
+            <div class="hia-stat-label">จังหวัด</div>
+          </div>
+        </div>
+        <div class="hia-stat-card">
+          <div>
+            <div class="hia-stat-val" id="stat-years">0</div>
+            <div class="hia-stat-label">ปีพ.ศ.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filter Bar -->
+      <div class="hia-filter-bar">
+        <input type="text" id="hia-search" placeholder="🔍 ค้นหาชื่อรายงาน..." oninput="applyFilters()">
+        <select id="hia-province" onchange="applyFilters()">
+          <option value="all">จังหวัด</option>
+        </select>
+        <select id="hia-district" onchange="applyFilters()">
+          <option value="all">อำเภอ</option>
+        </select>
+        <select id="hia-subdistrict" onchange="applyFilters()">
+          <option value="all">ตำบล</option>
+        </select>
+        <select id="hia-year" onchange="applyFilters()">
+          <option value="all">ปี พ.ศ.</option>
+        </select>
+        <select id="hia-title" onchange="applyFilters()">
+          <option value="all">ประเด็นหลัก</option>
+        </select>
+        <button class="btn-reset" onclick="resetFilters()">ล้างตัวกรอง</button>
+        <div id="btn-add-wrap" style="display:none;">
+          <button class="btn-add" onclick="openAddModal()">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M7 2v10M2 7h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+            เพิ่มข้อมูลใหม่
+          </button>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="hia-table-wrap">
+        <table class="hia-table">
+          <thead>
+            <tr>
+              <th style="width:32%">ชื่อรายงาน</th>
+              <th style="width:10%">ปี พ.ศ.</th>
+              <th style="width:12%">จังหวัด</th>
+              <th style="width:10%">อำเภอ</th>
+              <th style="width:10%">ตำบล</th>
+              <th style="width:12%">ประเด็นหลัก</th>
+              <th style="width:8%"></th>
+              <th id="th-actions" style="width:6%;display:none;"></th>
+            </tr>
+          </thead>
+          <tbody id="hia-tbody">
+            <tr><td colspan="8" class="hia-empty">กำลังโหลด...</td></tr>
+          </tbody>
+        </table>
+
+        <div class="hia-pager" id="hia-pager" style="display:none;">
+          <span class="hia-pager-info" id="hia-pager-info"></span>
+          <button class="hia-pager-btn" id="hia-prev" onclick="changePage(-1)">‹ ก่อนหน้า</button>
+          <button class="hia-pager-btn" id="hia-next" onclick="changePage(1)">ถัดไป ›</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── FOOTER ── -->
+  <footer class="site-footer">
+    <div class="footer-container">
+      <div class="footer-content">
+        <span class="footer-org">สำนักงานคณะกรรมการสุขภาพแห่งชาติ (สช.)</span>
+        <div class="footer-divider"></div>
+        <div class="footer-contact">
+          <span><span class="contact-label">ผู้พัฒนา:</span> นางสาวเบญวรรณ สาธุชน</span>
+          <span><span class="contact-label">อีเมล:</span> <a href="mailto:benyawansathuchon@gmail.com" class="contact-link">benyawansathuchon@gmail.com</a></span>
+          <span><span class="contact-label">โทร:</span> 063 542 0279</span>
+        </div>
+      </div>
+      <div class="footer-copyright">© 2026 National Health Commission Office (NHCO). All rights reserved.</div>
+    </div>
+  </footer>
+
+</div><!-- .app -->
+
+<!-- ── ADD / EDIT MODAL ── -->
+<div class="hia-modal-ov" id="hia-modal-ov">
+  <div class="hia-modal">
+    <h3 id="hia-modal-title">เพิ่มข้อมูล HIA</h3>
+    <input type="hidden" id="modal-id">
+
+    <div class="form-group">
+      <label>ชื่อรายงาน <span class="required">*</span></label>
+      <input type="text" id="modal-name" placeholder="ป้อนชื่อรายงาน">
+    </div>
+
+    <div class="form-grid-2">
+      <div class="form-group">
+        <label>ปี พ.ศ. <span class="required">*</span></label>
+        <input type="text" id="modal-year" placeholder="เช่น 2567">
+      </div>
+      <div class="form-group">
+        <label>ประเด็นหลัก</label>
+        <input type="text" id="modal-title" placeholder="เช่น ผู้สูงอายุ, เด็กและเยาวชน">
+      </div>
+    </div>
+
+    <div class="form-grid-3">
+      <div class="form-group">
+        <label>จังหวัด <span class="required">*</span></label>
+        <input type="text" id="modal-province" placeholder="จังหวัด" list="province-list" autocomplete="off">
+        <datalist id="province-list"></datalist>
+      </div>
+      <div class="form-group">
+        <label>อำเภอ</label>
+        <input type="text" id="modal-district" placeholder="อำเภอ">
+      </div>
+      <div class="form-group">
+        <label>ตำบล</label>
+        <input type="text" id="modal-subdistrict" placeholder="ตำบล">
+      </div>
+    </div>
+
+    <!-- PDF Upload -->
+    <div class="form-group">
+      <label>ไฟล์ PDF</label>
+      <div id="pdf-dropzone" class="pdf-dropzone" onclick="document.getElementById('pdf-file-input').click()">
+        <input type="file" id="pdf-file-input" accept=".pdf,application/pdf"
+               style="display:none" onchange="handleFileSelect(this.files[0])">
+
+        <div id="pdf-drop-content">
+          <div style="font-size:28px;margin-bottom:6px;">📄</div>
+          <div class="pdf-drop-text">ลากไฟล์ PDF มาวางที่นี่</div>
+          <div class="pdf-drop-sub">หรือคลิกเพื่อเลือกไฟล์ · รองรับเฉพาะ .pdf · สูงสุด 50MB</div>
+        </div>
+
+        <div id="pdf-selected-info" style="display:none;" class="pdf-selected-info">
+          <span style="font-size:20px;">📄</span>
+          <span id="pdf-filename" style="font-size:13px;color:#1a1a1a;font-weight:500;flex:1;"></span>
+          <span id="pdf-filesize" style="font-size:11px;color:#888;"></span>
+          <button onclick="clearPdfFile(event)"
+                  style="border:none;background:none;color:#E04031;cursor:pointer;font-size:18px;padding:0 4px;">×</button>
+        </div>
+      </div>
+
+      <div id="pdf-existing-wrap" style="display:none;margin-top:6px;">
+        <div style="font-size:11px;color:#888;margin-bottom:4px;">ไฟล์ปัจจุบัน:</div>
+        <a id="pdf-existing-link" href="#" target="_blank" style="font-size:12px;color:#185FA5;word-break:break-all;"></a>
+        <div style="font-size:11px;color:#aaa;margin-top:2px;">อัพโหลดไฟล์ใหม่เพื่อแทนที่</div>
+      </div>
+
+      <div class="upload-progress" id="pdf-upload-progress">
+        <div class="upload-label" id="pdf-upload-label">กำลังอัพโหลด...</div>
+        <div class="upload-bar-wrap">
+          <div class="upload-bar" id="pdf-progress-bar"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-modal-cancel2" onclick="closeModal()">ยกเลิก</button>
+      <button class="btn-modal-save" id="btn-modal-save" onclick="saveRecord()">บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── CONFIRM DELETE ── -->
+<div class="hia-confirm-ov" id="hia-confirm-ov">
+  <div class="hia-confirm-box">
+    <div style="font-size:32px;margin-bottom:10px;">🗑️</div>
+    <h4>ลบรายการ</h4>
+    <p id="hia-confirm-msg">คุณต้องการลบรายการนี้ใช่หรือไม่?</p>
+    <div class="hia-confirm-actions">
+      <button class="btn-modal-cancel2" style="flex:1" onclick="closeConfirm()">ยกเลิก</button>
+      <button style="flex:1;padding:9px 16px;background:#E04031;color:#fff;border:none;border-radius:8px;font-size:13px;font-family:'Kanit',sans-serif;cursor:pointer;"
+              onclick="confirmDelete()">ลบ</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── TOAST ── -->
+<div class="hia-toast" id="hia-toast"></div>
+
+<script>
+  // ─── CONFIG ─────────────────────────────────────────
+  const SUPABASE_URL = 'https://ncuyrsorvwguqfdnhbza.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5jdXlyc29ydndndXFmZG5oYnphIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2MDI1NjQsImV4cCI6MjA5MzE3ODU2NH0.EgVwmkXonCyhPBN8pCq_qMtJ2ZdEiESTFEJvo0Wxpfw';
+  const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  const STORAGE_BUCKET = 'hia-pdfs';
+
+  const PAGE_SIZE = 15;
+  let allRecords = [];
+  let filtered = [];
+  let currentPage = 1;
+  let pendingDeleteId = null;
+  let isLoggedIn = false;
+  let selectedPdfFile = null;
+
+  const $ = id => document.getElementById(id);
+
+  // ─── AUTH ────────────────────────────────────────────
+  function updateAuthUI() {
+    const out = $('auth-logged-out'), inn = $('auth-logged-in');
+    const addWrap = $('btn-add-wrap');
+    const thActions = $('th-actions');
+
+    try {
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        const hoursDiff = (new Date() - new Date(user.loginTime)) / (1000 * 60 * 60);
+        if (hoursDiff < 24 && user.loggedIn) {
+          out.style.display = 'none';
+          inn.style.display = 'flex';
+          const n = $('user-name'), ro = $('user-role'), av = $('user-avatar');
+          if (n) n.textContent = user.name || user.username || 'ผู้ใช้';
+          if (ro) ro.textContent = user.role || 'user';
+          if (av) av.textContent = (user.name || user.username || 'U').charAt(0).toUpperCase();
+          isLoggedIn = true;
+          if (addWrap) addWrap.style.display = 'block';
+          if (thActions) thActions.style.display = '';
+          return;
+        }
+      }
+    } catch (e) {}
+
+    out.style.display = 'block';
+    inn.style.display = 'none';
+    isLoggedIn = false;
+    if (addWrap) addWrap.style.display = 'none';
+    if (thActions) thActions.style.display = 'none';
+  }
+
+  function handleLogout() {
+    localStorage.removeItem('user');
+    updateAuthUI();
+    showToast('ออกจากระบบเรียบร้อย');
+    setTimeout(() => location.reload(), 1000);
+  }
+
+  // ─── LOAD DATA ───────────────────────────────────────
+  async function loadData() {
+    const { data, error } = await db
+      .from('data_hia')
+      .select('*')
+      .order('year', { ascending: false });
+
+    if (error) { console.error(error); return; }
+
+    allRecords = data || [];
+    populateFilterOptions();
+    updateStats();
+    applyFilters();
+
+    $('hia-stats').style.display = 'flex';
+  }
+
+  function updateStats() {
+    $('stat-total').textContent = allRecords.length;
+    $('stat-provinces').textContent = new Set(allRecords.map(r => r.province).filter(Boolean)).size;
+    $('stat-years').textContent = new Set(allRecords.map(r => r.year).filter(Boolean)).size;
+  }
+
+  function populateFilterOptions() {
+    const provinces  = [...new Set(allRecords.map(r => r.province).filter(Boolean))].sort((a,b) => a.localeCompare(b,'th'));
+    const districts  = [...new Set(allRecords.map(r => r.district).filter(Boolean))].sort((a,b) => a.localeCompare(b,'th'));
+    const subdistricts = [...new Set(allRecords.map(r => r.subdistrict).filter(Boolean))].sort((a,b) => a.localeCompare(b,'th'));
+    const years      = [...new Set(allRecords.map(r => r.year).filter(Boolean))].sort((a,b) => b - a);
+    const titles     = [...new Set(allRecords.map(r => r.title).filter(Boolean))].sort((a,b) => a.localeCompare(b,'th'));
+
+    const fill = (selId, items, placeholder) => {
+      const sel = $(selId);
+      sel.innerHTML = `<option value="all">${placeholder}</option>` +
+        items.map(v => `<option value="${escHtml(v)}">${escHtml(v)}</option>`).join('');
+    };
+
+    fill('hia-province',    provinces,    'จังหวัด');
+    fill('hia-district',    districts,    'อำเภอ');
+    fill('hia-subdistrict', subdistricts, 'ตำบล');
+    fill('hia-year',        years,        'ปี พ.ศ.');
+    fill('hia-title',       titles,       'ประเด็นหลัก');
+
+    // Fill datalist for modal
+    const dl = $('province-list');
+    if (dl) dl.innerHTML = provinces.map(p => `<option value="${escHtml(p)}">`).join('');
+  }
+
+  function applyFilters() {
+    const q           = ($('hia-search').value || '').trim().toLowerCase();
+    const province    = $('hia-province').value;
+    const district    = $('hia-district').value;
+    const subdistrict = $('hia-subdistrict').value;
+    const year        = $('hia-year').value;
+    const title       = $('hia-title').value;
+
+    filtered = allRecords.filter(r => {
+      if (province    !== 'all' && r.province    !== province)    return false;
+      if (district    !== 'all' && r.district    !== district)    return false;
+      if (subdistrict !== 'all' && r.subdistrict !== subdistrict) return false;
+      if (year        !== 'all' && String(r.year) !== year)       return false;
+      if (title       !== 'all' && r.title        !== title)       return false;
+      if (q && ![(r.name||''), (r.province||''), (r.district||''), (r.subdistrict||''), (r.title||'')]
+                .join(' ').toLowerCase().includes(q)) return false;
+      return true;
+    });
+
+    currentPage = 1;
+    renderTable();
+  }
+
+  function resetFilters() {
+    $('hia-search').value = '';
+    ['hia-province','hia-district','hia-subdistrict','hia-year','hia-title']
+      .forEach(id => $(id).value = 'all');
+    applyFilters();
+  }
+
+  // ─── RENDER TABLE ────────────────────────────────────
+  function renderTable() {
+    const tbody = $('hia-tbody');
+    const total = filtered.length;
+    const totalPages = Math.ceil(total / PAGE_SIZE) || 1;
+    if (currentPage > totalPages) currentPage = totalPages;
+
+    const start = (currentPage - 1) * PAGE_SIZE;
+    const pageData = filtered.slice(start, start + PAGE_SIZE);
+
+    if (!pageData.length) {
+      tbody.innerHTML = `<tr><td colspan="8" class="hia-empty">🔍 ไม่พบข้อมูล</td></tr>`;
+      $('hia-pager').style.display = 'none';
+      return;
+    }
+
+    tbody.innerHTML = pageData.map(r => `
+      <tr>
+        <td>
+          <div style="font-weight:500;color:#1a1a1a;line-height:1.4;">${escHtml(r.name || '(ไม่มีชื่อ)')}</div>
+        </td>
+        <td><span class="badge-year">${r.year || '—'}</span></td>
+        <td><span class="badge-prov">${escHtml(r.province || '—')}</span></td>
+        <td style="font-size:12px;color:#555;">${escHtml(r.district || '—')}</td>
+        <td style="font-size:12px;color:#555;">${escHtml(r.subdistrict || '—')}</td>
+        <td>${r.title ? `<span class="badge-title">${escHtml(r.title)}</span>` : '<span style="color:#ccc;font-size:12px;">—</span>'}</td>
+        <td>
+          ${r.pdf_url
+            ? `<a class="btn-download" href="${r.pdf_url}" target="_blank">
+                 <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
+                   <path d="M7 2v7M4 7l3 3 3-3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+                   <path d="M2 11h10" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+                 </svg>
+                 ดาวน์โหลด
+               </a>`
+            : `<span style="font-size:12px;color:#ccc;">ไม่มีไฟล์</span>`}
+        </td>
+        <td style="${isLoggedIn ? '' : 'display:none'}">
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button class="btn-edit" onclick="openEditModal(${r.id})">✏️</button>
+            <button class="btn-del-modal" onclick="openDeleteConfirm(${r.id},'${escHtml(r.name || '')}')">🗑️</button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+
+    $('hia-pager-info').textContent = `แสดง ${start+1}–${Math.min(start+PAGE_SIZE, total)} จาก ${total} รายการ`;
+    $('hia-prev').disabled = currentPage <= 1;
+    $('hia-next').disabled = currentPage >= totalPages;
+    $('hia-pager').style.display = totalPages > 1 ? 'flex' : 'none';
+  }
+
+  function changePage(dir) { currentPage += dir; renderTable(); }
+
+  // ─── PDF HANDLING ─────────────────────────────────────
+  function handleFileSelect(file) {
+    if (!file) return;
+    if (file.type !== 'application/pdf' && !file.name.endsWith('.pdf')) {
+      showToast('กรุณาเลือกเฉพาะไฟล์ .pdf', true); return;
+    }
+    if (file.size > 50 * 1024 * 1024) {
+      showToast('ไฟล์ขนาดใหญ่เกินไป (สูงสุด 50MB)', true); return;
+    }
+    selectedPdfFile = file;
+    $('pdf-drop-content').style.display = 'none';
+    $('pdf-selected-info').style.display = 'flex';
+    $('pdf-filename').textContent = file.name;
+    $('pdf-filesize').textContent = formatFileSize(file.size);
+  }
+
+  function clearPdfFile(e) {
+    e.stopPropagation();
+    selectedPdfFile = null;
+    $('pdf-file-input').value = '';
+    $('pdf-drop-content').style.display = '';
+    $('pdf-selected-info').style.display = 'none';
+  }
+
+  function formatFileSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+    return (bytes/(1024*1024)).toFixed(1) + ' MB';
+  }
+
+  function setupDropzone() {
+    const zone = $('pdf-dropzone');
+    if (!zone) return;
+    zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+    zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+    zone.addEventListener('drop', e => {
+      e.preventDefault();
+      zone.classList.remove('drag-over');
+      const file = e.dataTransfer.files[0];
+      if (file) handleFileSelect(file);
+    });
+  }
+// ─── แก้ฟังก์ชัน uploadPdf ── เพิ่ม return path ด้วย ───
+async function uploadPdf(file) {
+  const timestamp = Date.now();
+  const safeName = file.name
+    .normalize('NFD')
+    .replace(/[\u0E00-\u0E7F]/g, '')
+    .replace(/[^a-zA-Z0-9._-]/g, '_')
+    .replace(/\s+/g, '_')
+    .replace(/_+/g, '_')
+    .toLowerCase()
+    .slice(0, 100);
+  const path = `${timestamp}_${safeName}`;
+
+  $('pdf-upload-progress').style.display = 'block';
+  $('pdf-upload-label').textContent = 'กำลังอัพโหลด...';
+  $('pdf-progress-bar').style.width = '30%';
+
+  const { error } = await db.storage.from(STORAGE_BUCKET).upload(path, file, {
+    contentType: 'application/pdf', upsert: false, cacheControl: '3600'
+  });
+
+  if (error) {
+    $('pdf-upload-progress').style.display = 'none';
+    throw new Error('อัพโหลดไม่สำเร็จ: ' + error.message);
+  }
+
+  $('pdf-progress-bar').style.width = '80%';
+  const { data: urlData } = db.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+  if (!urlData?.publicUrl) throw new Error('ไม่สามารถสร้างลิงก์ได้');
+
+  $('pdf-progress-bar').style.width = '100%';
+  $('pdf-upload-label').textContent = '✅ อัพโหลดสำเร็จ';
+  return urlData.publicUrl;   // ← คืน public URL เหมือนเดิม
+}
+
+// ─── helper: แยก storage path จาก public URL ───────────────
+function extractStoragePath(publicUrl) {
+  // URL รูปแบบ: https://<project>.supabase.co/storage/v1/object/public/<bucket>/<path>
+  try {
+    const marker = `/object/public/${STORAGE_BUCKET}/`;
+    const idx = publicUrl.indexOf(marker);
+    if (idx !== -1) return decodeURIComponent(publicUrl.slice(idx + marker.length));
+  } catch (e) {}
+  // fallback: ใช้แค่ส่วนหลัง URL
+  return decodeURIComponent(publicUrl.split('/').pop());
+}
+
+  // ─── MODAL ───────────────────────────────────────────
+  function resetPdfZone() {
+    selectedPdfFile = null;
+    if ($('pdf-file-input')) $('pdf-file-input').value = '';
+    if ($('pdf-drop-content')) $('pdf-drop-content').style.display = '';
+    if ($('pdf-selected-info')) $('pdf-selected-info').style.display = 'none';
+    if ($('pdf-upload-progress')) $('pdf-upload-progress').style.display = 'none';
+    if ($('pdf-progress-bar')) $('pdf-progress-bar').style.width = '0%';
+    if ($('pdf-existing-wrap')) $('pdf-existing-wrap').style.display = 'none';
+  }
+
+  function openAddModal() {
+    $('hia-modal-title').textContent = 'เพิ่มข้อมูล HIA';
+    $('modal-id').value = '';
+    ['modal-name','modal-year','modal-title','modal-province','modal-district','modal-subdistrict']
+      .forEach(id => $(id).value = '');
+    resetPdfZone();
+    $('hia-modal-ov').classList.add('show');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function openEditModal(id) {
+    const r = allRecords.find(x => x.id === id);
+    if (!r) return;
+    $('hia-modal-title').textContent = 'แก้ไขข้อมูล HIA';
+    $('modal-id').value = r.id;
+    $('modal-name').value = r.name || '';
+    $('modal-year').value = r.year || '';
+    $('modal-title').value = r.title || '';
+    $('modal-province').value = r.province || '';
+    $('modal-district').value = r.district || '';
+    $('modal-subdistrict').value = r.subdistrict || '';
+    resetPdfZone();
+    if (r.pdf_url) {
+      $('pdf-existing-wrap').style.display = 'block';
+      $('pdf-existing-link').href = r.pdf_url;
+      $('pdf-existing-link').textContent = r.pdf_url.split('/').pop() || r.pdf_url;
+    }
+    $('hia-modal-ov').classList.add('show');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeModal() {
+    $('hia-modal-ov').classList.remove('show');
+    document.body.style.overflow = '';
+    resetPdfZone();
+  }
+
+  // ─── แก้ saveRecord ─────────────────────────────────────────
+async function saveRecord() {
+  const id          = $('modal-id').value;
+  const name        = $('modal-name').value.trim();
+  const year        = $('modal-year').value.trim();
+  const title       = $('modal-title').value.trim();
+  const province    = $('modal-province').value.trim();
+  const district    = $('modal-district').value.trim();
+  const subdistrict = $('modal-subdistrict').value.trim();
+
+  if (!name || !year || !province) {
+    showToast('กรุณากรอกชื่อรายงาน ปี พ.ศ. และจังหวัด', true); return;
+  }
+
+  const saveBtn = $('btn-modal-save');
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'กำลังบันทึก...';
+
+  try {
+    let new_pdf_url = null;
+
+    if (selectedPdfFile) {
+      // ── มีไฟล์ใหม่: ลบไฟล์เก่าก่อน แล้วอัพโหลดใหม่ ──
+      if (id) {
+        const old = allRecords.find(r => r.id === parseInt(id));
+        if (old?.pdf_url) {
+          try {
+            const oldPath = extractStoragePath(old.pdf_url);
+            await db.storage.from(STORAGE_BUCKET).remove([oldPath]);
+          } catch (e) { console.warn('ลบไฟล์เก่าไม่สำเร็จ:', e); }
+        }
+      }
+      new_pdf_url = await uploadPdf(selectedPdfFile);
+    }
+
+    // ── สร้าง payload ──
+    const payload = { name, year, title, province, district, subdistrict };
+
+    if (new_pdf_url) {
+      // มีไฟล์ใหม่: ใช้ URL ใหม่
+      payload.pdf_url = new_pdf_url;
+    } else if (id) {
+      // แก้ไข + ไม่มีไฟล์ใหม่: เก็บ URL เดิมไว้ (ไม่ใส่ field นี้ใน payload เลย)
+      // → Supabase จะไม่ touch คอลัมน์ pdf_url
+    }
+    // เพิ่มใหม่ + ไม่มีไฟล์: ปล่อยไม่ส่ง pdf_url (จะเป็น NULL ในฐานข้อมูล)
+
+    let error;
+    if (id) {
+      ({ error } = await db.from('data_hia').update(payload).eq('id', id));
+    } else {
+      ({ error } = await db.from('data_hia').insert([payload]));
+    }
+
+    if (error) { showToast('เกิดข้อผิดพลาด: ' + error.message, true); return; }
+
+    showToast(id ? '✅ อัปเดตข้อมูลเรียบร้อย' : '✅ เพิ่มข้อมูลเรียบร้อย');
+    closeModal();
+    await loadData();
+
+  } catch (err) {
+    showToast('❌ ' + (err.message || 'เกิดข้อผิดพลาด'), true);
+  } finally {
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'บันทึก';
+    $('pdf-upload-progress').style.display = 'none';
+  }
+}
+
+  // ─── DELETE ──────────────────────────────────────────
+  function openDeleteConfirm(id, name) {
+    pendingDeleteId = id;
+    $('hia-confirm-msg').textContent = `คุณต้องการลบ "${name}" ใช่หรือไม่?`;
+    $('hia-confirm-ov').classList.add('show');
+  }
+
+  function closeConfirm() {
+    $('hia-confirm-ov').classList.remove('show');
+    pendingDeleteId = null;
+  }
+
+  // ─── แก้ confirmDelete ──────────────────────────────────────
+async function confirmDelete() {
+  if (!pendingDeleteId) return;
+  const record = allRecords.find(r => r.id === pendingDeleteId);
+
+  // ลบไฟล์ PDF ออกจาก Storage ก่อน
+  if (record?.pdf_url) {
+    try {
+      const filePath = extractStoragePath(record.pdf_url);
+      const { error: storageErr } = await db.storage
+        .from(STORAGE_BUCKET)
+        .remove([filePath]);
+      if (storageErr) console.warn('ลบ PDF ไม่สำเร็จ:', storageErr.message);
+    } catch (e) { console.warn('ลบ PDF error:', e); }
+  }
+
+  // ลบ record ออกจากตาราง
+  const { error } = await db.from('data_hia').delete().eq('id', pendingDeleteId);
+  if (error) { showToast('เกิดข้อผิดพลาด: ' + error.message, true); return; }
+
+  showToast('🗑️ ลบข้อมูลเรียบร้อย');
+  closeConfirm();
+  await loadData();
+}
+
+  // ─── NAV HELPERS ─────────────────────────────────────
+  function toggleMobileMenu() {
+    const menu = $('topnav-links'), btn = $('mobile-toggle');
+    if (menu && btn) { menu.classList.toggle('active'); btn.classList.toggle('active'); }
+  }
+
+  function toggleHiaMenu(e) {
+    e.stopPropagation(); e.preventDefault();
+    const submenu = $('hia-submenu'), toggle = e.currentTarget;
+    if (submenu) { submenu.classList.toggle('show'); if (toggle) toggle.classList.toggle('active'); }
+  }
+
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.nav-dropdown')) $('hia-submenu')?.classList.remove('show');
+    const mobileMenu = $('topnav-links'), mobileBtn = $('mobile-toggle');
+    if (mobileMenu?.classList.contains('active') &&
+        e.target.closest('.nav-link') && !e.target.closest('.nav-dropdown-toggle')) {
+      mobileMenu.classList.remove('active');
+      if (mobileBtn) mobileBtn.classList.remove('active');
+    }
+  });
+
+  // ─── UTILS ───────────────────────────────────────────
+  function escHtml(s) {
+    return String(s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  let toastTimer;
+  function showToast(msg, isError = false) {
+    const t = $('hia-toast');
+    t.textContent = msg;
+    t.style.borderLeftColor = isError ? '#E04031' : '#1D9E75';
+    t.style.display = 'block';
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { t.style.display = 'none'; }, 3000);
+  }
+
+  // ─── INIT ─────────────────────────────────────────────
+  document.addEventListener('DOMContentLoaded', async () => {
+    updateAuthUI();
+    await loadData();
+    setupDropzone();
+
+    $('hia-modal-ov').addEventListener('click', e => { if (e.target === $('hia-modal-ov')) closeModal(); });
+    $('hia-confirm-ov').addEventListener('click', e => { if (e.target === $('hia-confirm-ov')) closeConfirm(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeConfirm(); } });
+
+    const avatar = $('user-avatar');
+    if (avatar) { avatar.style.cursor = 'pointer'; }
+  });
+</script>
+</body>
+</html>
