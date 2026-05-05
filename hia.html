@@ -452,8 +452,8 @@
         </td>
         <td style="${isLoggedIn ? '' : 'display:none'}">
           <div style="display:flex;gap:6px;flex-wrap:wrap;">
-            <button class="btn-edit" onclick="openEditModal(${r.id})">✏️</button>
-            <button class="btn-del-modal" onclick="openDeleteConfirm(${r.id},'${escHtml(r.name || '')}')">🗑️</button>
+            <button class="btn-edit" onclick="openEditModal(${r.id})">✏️ แก้ไข</button>
+            <button class="btn-del-modal" onclick="openDeleteConfirm(${r.id},'${escHtml(r.name || '')}')">🗑️ ลบ</button>
           </div>
         </td>
       </tr>

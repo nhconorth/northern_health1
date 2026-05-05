@@ -4793,3 +4793,44 @@ tr:hover td {
         background-attachment: local, local, scroll, scroll;
       }
     }
+
+    /* ── ป้องกัน autofill สีฟ้าของ browser ── */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 9999px #fff inset !important;
+  -webkit-text-fill-color: #1a1a1a !important;
+  transition: background-color 9999s ease-in-out 0s;
+}
+
+/* สำหรับ Firefox */
+input {
+  filter: none;
+}
+
+/* ── ปุ่ม action ในตาราง: บังคับแนวนอนไม่ตัดบรรทัด ── */
+.hia-action-group {
+  display: flex;
+  gap: 6px;
+  flex-wrap: nowrap;
+  align-items: center;
+}
+
+.btn-edit,
+.btn-del-modal {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ── ซ่อน arrow ของ datalist ใน input จังหวัด ── */
+#modal-province::-webkit-calendar-picker-indicator {
+  display: none !important;
+  opacity: 0;
+}
+
+#modal-province {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
