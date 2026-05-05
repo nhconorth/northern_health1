@@ -84,6 +84,7 @@
           <button class="type-pill" data-type="thammanun" onclick="setType('thammanun')">🌿 ธรรมนูญสุขภาพ</button>
           <button class="type-pill" data-type="hia" onclick="setType('hia')">📊 HIA</button>
           <button class="type-pill" data-type="mat12" onclick="setType('mat12')">📋 มาตรา 12</button>
+          <button class="type-pill" data-type="monk" onclick="setType('monk')">🙏 พระ</button>
         </div>
 
         <div class="filter-sep"></div>
@@ -116,6 +117,7 @@
         <table class="nw-table">
           <thead>
             <tr>
+              <th style="width:6%">รูป</th>
               <th style="width:26%">ชื่อ / องค์กร</th>
               <th style="width:12%">ประเภท</th>
               <th style="width:8%">เขต</th>
@@ -159,6 +161,7 @@
           <option value="ธรรมนูญสุขภาพ">ธรรมนูญสุขภาพ</option>
           <option value="HIA">HIA</option>
           <option value="มาตรา12">มาตรา 12</option>
+          <option value="พระ">พระ</option>
         </select>
       </div>
       <div class="form-group">
@@ -186,6 +189,23 @@
     <div class="form-group">
       <label>เบอร์โทรศัพท์</label>
       <input type="tel" id="modal-phone" placeholder="ป้อนเบอร์โทรศัพท์">
+    </div>
+
+    <div class="form-group">
+      <label>รูปภาพ</label>
+      <div class="img-dropzone" id="img-dropzone" onclick="document.getElementById('img-file-input').click()">
+        <div id="img-drop-content">
+          <div style="font-size:28px;margin-bottom:6px;">🖼️</div>
+          <div style="font-size:13px;font-weight:500;color:#1D9E75;">คลิกเพื่อเลือกรูปภาพ</div>
+          <div style="font-size:11px;color:#aaa;margin-top:3px;">PNG, JPG, WEBP ขนาดไม่เกิน 5MB</div>
+        </div>
+      </div>
+      <input type="file" id="img-file-input" accept="image/*" style="display:none" onchange="handleImgSelect(event)">
+      <div id="img-current-wrap" style="display:none;margin-top:8px;">
+        <div style="font-size:11px;color:#aaa;margin-bottom:4px;">รูปปัจจุบัน:</div>
+        <img id="img-current-preview" src="" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid rgba(0,0,0,0.1);">
+        <button type="button" onclick="removeCurrentImg()" style="margin-left:8px;padding:4px 10px;border:1px solid #E04031;color:#E04031;background:white;border-radius:6px;font-size:11px;cursor:pointer;">ลบรูป</button>
+      </div>
     </div>
 
     <div class="nw-modal-actions">
@@ -401,6 +421,7 @@ const TYPE_DB_VALUES = {
   thammanun: ['ธรรมนูญสุขภาพ', 'thammanun'],
   hia:       ['HIA', 'hia'],
   mat12:     ['มาตรา12', 'มาตรา 12', 'mat12'],
+  monk:      ['พระ', 'monk'],
 };
 
 // ── FILTER ────────────────────────────────────────────
@@ -471,15 +492,16 @@ function resetFilters() {
   applyFilters();
 }
 
-// ── STATS ─────────────────────────────────────────────
+// ── updateStats ── เพิ่ม monk counter
 function updateStats() {
   const total = filtered.length;
-  const counts = { thammanun:0, hia:0, mat12:0 };
+  const counts = { thammanun:0, hia:0, mat12:0, monk:0 };  // ← เพิ่ม monk:0
   filtered.forEach(r => {
     const t = r.type || '';
-    if (TYPE_DB_VALUES.thammanun.includes(t)) counts.thammanun++;
-    else if (TYPE_DB_VALUES.hia.includes(t))  counts.hia++;
-    else if (TYPE_DB_VALUES.mat12.includes(t)) counts.mat12++;
+    if (TYPE_DB_VALUES.thammanun.includes(t))     counts.thammanun++;
+    else if (TYPE_DB_VALUES.hia.includes(t))       counts.hia++;
+    else if (TYPE_DB_VALUES.mat12.includes(t))     counts.mat12++;
+    else if (TYPE_DB_VALUES.monk.includes(t))      counts.monk++;   // ← เพิ่ม
   });
 
   $('nw-stats').innerHTML = `
@@ -499,17 +521,22 @@ function updateStats() {
       <div class="dot" style="background:var(--blue);"></div>
       มาตรา 12 <span class="num">${counts.mat12}</span> รายการ
     </div>
+    <div class="stat-chip">
+      <div class="dot" style="background:#9B59B6;"></div>
+      พระ <span class="num">${counts.monk}</span> รายการ
+    </div>
   `;
 }
 
 // ── RENDER TABLE ──────────────────────────────────────
-// map ค่าจริงใน DB → label ที่แสดง + CSS class
+// ── getTypeLabel ── เพิ่ม monk
 function getTypeLabel(type) {
   if (!type) return { label: '—', cls: '' };
   const t = type.trim();
   if (TYPE_DB_VALUES.thammanun.includes(t)) return { label: 'ธรรมนูญสุขภาพ', cls: 'badge-thammanun' };
   if (TYPE_DB_VALUES.hia.includes(t))       return { label: 'HIA',            cls: 'badge-hia' };
   if (TYPE_DB_VALUES.mat12.includes(t))     return { label: 'มาตรา 12',       cls: 'badge-mat12' };
+  if (TYPE_DB_VALUES.monk.includes(t))      return { label: 'พระ',            cls: 'badge-monk' };  // ← เพิ่ม
   return { label: escHtml(t), cls: '' };
 }
 
@@ -528,37 +555,54 @@ function renderTable() {
   }
 
   tbody.innerHTML = pageData.map(r => {
-    const { label: typeLabel, cls: typeCls } = getTypeLabel(r.type);
-    return `
-    <tr>
-      <td>
-        <div class="nw-name">${escHtml(r.name||'(ไม่มีชื่อ)')}</div>
-      </td>
-      <td>
-        <span class="badge-type ${typeCls}">${typeLabel}</span>
-      </td>
-      <td>
-        ${r.zone ? `<span class="badge-zone">${escHtml(r.zone)}</span>` : '—'}
-      </td>
-      <td>
-        ${r.province ? `<span class="badge-prov">${escHtml(r.province)}</span>` : '—'}
-      </td>
-      <td>
-        <div class="nw-addr">${escHtml(r.address||'—')}</div>
-      </td>
-      <td>
-        <div class="nw-phone">
-          ${r.phone ? escHtml(r.phone) : '—'}
-        </div>
-      </td>
-      <td style="${isLoggedIn?'':'display:none'}">
-        <div style="display:flex;gap:5px;flex-wrap:nowrap;white-space:nowrap">
-          <button class="btn-edit" onclick="openEditModal(${r.id})">✏️ แก้ไข</button>
-          <button class="btn-del-modal" onclick="openDeleteConfirm(${r.id},'${escHtml(r.name||'')}')">🗑️ ลบ</button>
-        </div>
-      </td>
-    </tr>
-  `;}).join('');
+  const { label: typeLabel, cls: typeCls } = getTypeLabel(r.type);
+  
+  // ── รูปภาพ ──
+  const imgCell = r.image_url
+    ? `<img src="${escHtml(r.image_url)}" 
+          style="width:40px;height:40px;object-fit:cover;border-radius:6px;
+                 border:1px solid rgba(0,0,0,0.1);display:block;"
+          onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+       <div style="display:none;width:40px;height:40px;background:#f0f0ec;
+                   border-radius:6px;border:1px solid rgba(0,0,0,0.08);
+                   align-items:center;justify-content:center;font-size:16px;">🖼️</div>`
+    : `<div style="width:40px;height:40px;background:#f0f0ec;border-radius:6px;
+                   border:1px solid rgba(0,0,0,0.08);display:flex;
+                   align-items:center;justify-content:center;font-size:16px;color:#ccc;">
+         —
+       </div>`;
+
+  return `
+  <tr>
+    <td><div style="display:flex;justify-content:center;">${imgCell}</div></td>
+    <td>
+      <div class="nw-name">${escHtml(r.name||'(ไม่มีชื่อ)')}</div>
+    </td>
+    <td>
+      <span class="badge-type ${typeCls}">${typeLabel}</span>
+    </td>
+    <td>
+      ${r.zone ? `<span class="badge-zone">${escHtml(r.zone)}</span>` : '—'}
+    </td>
+    <td>
+      ${r.province ? `<span class="badge-prov">${escHtml(r.province)}</span>` : '—'}
+    </td>
+    <td>
+      <div class="nw-addr">${escHtml(r.address||'—')}</div>
+    </td>
+    <td>
+      <div class="nw-phone">
+        ${r.phone ? escHtml(r.phone) : '—'}
+      </div>
+    </td>
+    <td style="${isLoggedIn?'':'display:none'}">
+      <div style="display:flex;gap:5px;flex-wrap:nowrap;white-space:nowrap">
+        <button class="btn-edit" onclick="openEditModal(${r.id})">✏️ แก้ไข</button>
+        <button class="btn-del-modal" onclick="openDeleteConfirm(${r.id},'${escHtml(r.name||'')}')">🗑️ ลบ</button>
+      </div>
+    </td>
+  </tr>
+`;}).join('');
 
   const pager = $('nw-pager');
   $('nw-pager-info').textContent = `แสดง ${start+1}–${Math.min(start+PAGE_SIZE,total)} จาก ${total} รายการ`;
@@ -569,7 +613,6 @@ function renderTable() {
 
 function changePage(dir) { currentPage+=dir; renderTable(); }
 
-// ── MODAL ─────────────────────────────────────────────
 function openAddModal() {
   $('nw-modal-title').textContent = 'เพิ่มข้อมูลเครือข่าย';
   $('modal-id').value = '';
@@ -579,22 +622,32 @@ function openAddModal() {
   $('modal-address').value = '';
   $('modal-phone').value = '';
   populateProvinceDropdown('modal-province-sel', '');
+  resetImgDropzone();   // ← เพิ่ม
   $('nw-modal-ov').classList.add('show');
   document.body.style.overflow = 'hidden';
 }
 
 function openEditModal(id) {
-  const r = allRecords.find(x=>x.id===id);
-  if(!r) return;
+  const r = allRecords.find(x => x.id === id);
+  if (!r) return;
   $('nw-modal-title').textContent = 'แก้ไขข้อมูลเครือข่าย';
-  $('modal-id').value = r.id;
-  $('modal-name').value = r.name||'';
-  $('modal-type').value = r.type||'';
-  $('modal-zone').value = r.zone||'';
-  $('modal-address').value = r.address||'';
-  $('modal-phone').value = r.phone||'';
-  populateProvinceDropdown('modal-province-sel', r.zone||'');
-  setTimeout(()=>{ $('modal-province-sel').value = r.province||''; }, 50);
+  $('modal-id').value    = r.id;
+  $('modal-name').value  = r.name    || '';
+  $('modal-type').value  = r.type    || '';
+  $('modal-zone').value  = r.zone    || '';
+  $('modal-address').value = r.address || '';
+  $('modal-phone').value = r.phone   || '';
+  populateProvinceDropdown('modal-province-sel', r.zone || '');
+  setTimeout(() => { $('modal-province-sel').value = r.province || ''; }, 50);
+
+  // ← แสดงรูปเดิม (ถ้ามี)
+  resetImgDropzone();
+  if (r.image_url) {
+    currentImgUrl = r.image_url;
+    $('img-current-preview').src = r.image_url;
+    $('img-current-wrap').style.display = 'block';
+  }
+
   $('nw-modal-ov').classList.add('show');
   document.body.style.overflow = 'hidden';
 }
@@ -604,59 +657,59 @@ function closeModal() {
   document.body.style.overflow = '';
 }
 
-// ── SAVE (INSERT / UPDATE) ────────────────────────────
 async function saveRecord() {
-  const id = $('modal-id').value;
-  const name = $('modal-name').value.trim();
-  const type = $('modal-type').value;
-  const zone = $('modal-zone').value;
+  const id       = $('modal-id').value;
+  const name     = $('modal-name').value.trim();
+  const type     = $('modal-type').value;
+  const zone     = $('modal-zone').value;
   const province = $('modal-province-sel').value;
 
   if (!name || !type || !zone || !province) {
-    showToast('กรุณากรอกข้อมูลที่จำเป็นให้ครบ', true);
-    return;
+    showToast('กรุณากรอกข้อมูลที่จำเป็นให้ครบ', true); return;
   }
 
   const saveBtn = $('btn-save');
   saveBtn.disabled = true;
   saveBtn.textContent = 'กำลังบันทึก...';
 
-  // ── payload ตรงกับ column ใน data_network ──
-  const payload = {
-    name,
-    type,
-    zone,
-    province,
-    address: $('modal-address').value.trim(),
-    phone:   $('modal-phone').value.trim(),
-  };
-
   try {
+    let image_url = currentImgUrl; // เก็บ URL เดิมไว้ก่อน
+
+    // กรณีแก้ไข: ลบรูปเดิมถ้ามีการเปลี่ยน/ลบ
+    const oldRecord = id ? allRecords.find(x => x.id == id) : null;
+    const oldImgUrl = oldRecord?.image_url;
+
+    if (selectedImgFile) {
+      // มีรูปใหม่ → ลบรูปเดิมก่อน แล้ว upload ใหม่
+      if (oldImgUrl) await deleteImg(oldImgUrl);
+      image_url = await uploadImg(selectedImgFile);
+    } else if (removeOldImg && oldImgUrl) {
+      // กดปุ่มลบรูป → ลบออกจาก storage ด้วย
+      await deleteImg(oldImgUrl);
+      image_url = null;
+    }
+
+    const payload = {
+      name, type, zone, province,
+      address:   $('modal-address').value.trim(),
+      phone:     $('modal-phone').value.trim(),
+      image_url: image_url || null,
+    };
+
     let error;
     if (id) {
-      // UPDATE
-      ({ error } = await db
-        .from(TABLE_NAME)
-        .update(payload)
-        .eq('id', id));
+      ({ error } = await db.from(TABLE_NAME).update(payload).eq('id', id));
     } else {
-      // INSERT
-      ({ error } = await db
-        .from(TABLE_NAME)
-        .insert([payload]));
+      ({ error } = await db.from(TABLE_NAME).insert([payload]));
     }
 
-    if (error) {
-      console.error('Save error:', error);
-      showToast('❌ เกิดข้อผิดพลาด: ' + error.message, true);
-      return;
-    }
+    if (error) { showToast('❌ ' + error.message, true); return; }
 
-    showToast(id ? '✅ อัปเดตข้อมูลเรียบร้อย' : '✅ เพิ่มข้อมูลเรียบร้อย');
+    showToast(id ? '✅ อัปเดตเรียบร้อย' : '✅ เพิ่มข้อมูลเรียบร้อย');
     closeModal();
     await loadData();
-  } catch(err) {
-    console.error('Unexpected error:', err);
+
+  } catch (err) {
     showToast('❌ ' + err.message, true);
   } finally {
     saveBtn.disabled = false;
@@ -678,23 +731,18 @@ function closeConfirm() {
 
 async function confirmDelete() {
   if (!pendingDeleteId) return;
-
   try {
-    const { error } = await db
-      .from(TABLE_NAME)
-      .delete()
-      .eq('id', pendingDeleteId);
+    // หา record ก่อนลบ เพื่อเอา image_url
+    const record = allRecords.find(r => r.id === pendingDeleteId);
+    if (record?.image_url) await deleteImg(record.image_url);
 
-    if (error) {
-      console.error('Delete error:', error);
-      showToast('❌ เกิดข้อผิดพลาด: ' + error.message, true);
-      return;
-    }
+    const { error } = await db.from(TABLE_NAME).delete().eq('id', pendingDeleteId);
+    if (error) { showToast('❌ ' + error.message, true); return; }
 
     showToast('🗑️ ลบข้อมูลเรียบร้อย');
     closeConfirm();
     await loadData();
-  } catch(err) {
+  } catch (err) {
     showToast('❌ ' + err.message, true);
   }
 }
@@ -717,6 +765,114 @@ function showToast(msg, isError=false) {
   t.style.display='block';
   clearTimeout(toastTimer);
   toastTimer=setTimeout(()=>{t.style.display='none';},3500);
+}
+
+// ── IMAGE UPLOAD STATE ──
+let selectedImgFile = null;     // ไฟล์ใหม่ที่เลือก
+let currentImgUrl   = null;     // URL รูปเดิม (ตอนแก้ไข)
+let removeOldImg    = false;    // flag: ลบรูปเดิมทิ้ง
+
+const IMG_BUCKET = 'network-images';
+
+// ── IMAGE HELPER: ดึง storage path จาก public URL ──
+function getImgStoragePath(url) {
+  if (!url) return null;
+  try {
+    const marker = `/object/public/${IMG_BUCKET}/`;
+    const idx = url.indexOf(marker);
+    if (idx !== -1) return decodeURIComponent(url.slice(idx + marker.length));
+    return decodeURIComponent(url.split('/').pop());
+  } catch { return url.split('/').pop(); }
+}
+
+// ── เมื่อเลือกไฟล์ ──
+function handleImgSelect(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  if (file.size > 5 * 1024 * 1024) {
+    showToast('❌ ไฟล์ใหญ่เกิน 5MB', true); return;
+  }
+  selectedImgFile = file;
+  removeOldImg = false;
+
+  // Preview
+  const reader = new FileReader();
+  reader.onload = e => showImgDropzonePreview(e.target.result, file.name);
+  reader.readAsDataURL(file);
+}
+
+function showImgDropzonePreview(src, name) {
+  const dz = $('img-dropzone');
+  dz.innerHTML = `
+    <div class="img-selected-info">
+      <img src="${src}" style="width:56px;height:56px;object-fit:cover;border-radius:6px;flex-shrink:0;">
+      <div style="flex:1;min-width:0;text-align:left;">
+        <div style="font-size:12px;font-weight:500;color:#1a1a1a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${name}</div>
+        <div style="font-size:11px;color:#aaa;margin-top:2px;">คลิกเพื่อเปลี่ยนรูป</div>
+      </div>
+    </div>`;
+}
+
+function resetImgDropzone() {
+  selectedImgFile = null;
+  currentImgUrl   = null;
+  removeOldImg    = false;
+  const dz = $('img-dropzone');
+  dz.innerHTML = `
+    <div id="img-drop-content">
+      <div style="font-size:28px;margin-bottom:6px;">🖼️</div>
+      <div style="font-size:13px;font-weight:500;color:#1D9E75;">คลิกเพื่อเลือกรูปภาพ</div>
+      <div style="font-size:11px;color:#aaa;margin-top:3px;">PNG, JPG, WEBP ขนาดไม่เกิน 5MB</div>
+    </div>`;
+  $('img-current-wrap').style.display = 'none';
+  $('img-file-input').value = '';
+}
+
+function removeCurrentImg() {
+  removeOldImg = true;
+  currentImgUrl = null;
+  $('img-current-wrap').style.display = 'none';
+}
+
+// ── Drag & Drop ──
+function initDropzone() {
+  const dz = $('img-dropzone');
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault(); dz.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) {
+      $('img-file-input').files = e.dataTransfer.files;
+      handleImgSelect({ target: { files: [file] } });
+    }
+  });
+  dz.addEventListener('click', () => $('img-file-input').click());
+}
+
+async function uploadImg(file) {
+  const ext  = file.name.split('.').pop();
+  const path = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+  
+  const { data, error } = await db.storage.from(IMG_BUCKET).upload(path, file, {
+    contentType: file.type, 
+    upsert: false
+  });
+  
+  if (error) throw new Error('Upload รูปไม่สำเร็จ: ' + error.message);
+  
+  // ✅ ใช้ getPublicUrl แบบนี้เท่านั้น — จะได้ URL ที่มี /public/ อัตโนมัติ
+  const { data: urlData } = db.storage.from(IMG_BUCKET).getPublicUrl(path);
+  
+  console.log('✅ Upload สำเร็จ:', urlData.publicUrl); // ← debug ดู URL
+  return urlData.publicUrl;
+}
+
+// ── ลบรูปออกจาก Storage ──
+async function deleteImg(url) {
+  if (!url) return;
+  const path = getImgStoragePath(url);
+  if (path) await db.storage.from(IMG_BUCKET).remove([path]);
 }
 
 // ── NAV ───────────────────────────────────────────────
@@ -807,6 +963,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   updateAuthUI();
   populateZoneDropdown();
+  initDropzone();
   await loadData();
 
   $('nw-modal-ov').addEventListener('click', e => { if(e.target===$('nw-modal-ov')) closeModal(); });
