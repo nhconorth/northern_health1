@@ -8,7 +8,7 @@
 - มี keepalive endpoint เพื่อป้องกัน Supabase ไม่ถูก deactivate
 
 ## Keepalive
-- มี endpoint ที่เรียกผ่าน Vercel cron ทุก 5 นาที
+- มี endpoint ที่เรียกผ่าน Vercel cron ทุก 3 วัน
 - Endpoint: `/api/keepalive`
 - ต้องตั้งค่าตัวแปร環ข้างใน Vercel:
   - `SUPABASE_URL`
