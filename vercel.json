@@ -12,6 +12,12 @@
       "dest": "/$1"
     }
   ],
+  "crons": [
+    {
+      "path": "/api/keepalive",
+      "schedule": "*/5 * * * *"
+    }
+  ],
   "github": {
     "silent": true
   }
